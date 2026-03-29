@@ -798,7 +798,12 @@ const styles = StyleSheet.create({
   },
 
   /* Lightbox */
-  lightbox: { flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
+  lightbox: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   lightboxCounter: {
     position: "absolute", left: 20,
     fontFamily: "Sora_600SemiBold", fontSize: 13, color: "rgba(255,255,255,0.6)",
