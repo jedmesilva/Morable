@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 import { PropertyCard } from "@/components/PropertyCard";
+import { LocationSheet } from "@/components/LocationSheet";
 import { properties } from "@/context/AppContext";
 
 const chips = ["Todos", "Studio", "1 quarto", "2 quartos", "3+ quartos"];
@@ -21,6 +22,8 @@ export default function DiscoverScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [activeChip, setActiveChip] = useState(0);
   const [search, setSearch] = useState("");
+  const [location, setLocation] = useState("Rio de Janeiro, RJ");
+  const [locationSheetVisible, setLocationSheetVisible] = useState(false);
 
   const filtered = properties.filter((p) => {
     const matchChip =
@@ -37,95 +40,108 @@ export default function DiscoverScreen() {
   });
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 32 }}
-    >
-      <View style={{ paddingTop: topPad + 12, paddingHorizontal: 20 }}>
-        <Text style={styles.title}>Descobrir</Text>
-        <Text style={styles.subtitle}>Encontre seu próximo lar</Text>
+    <>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
+        <View style={{ paddingTop: topPad + 12, paddingHorizontal: 20 }}>
+          <Text style={styles.title}>Descobrir</Text>
+          <Text style={styles.subtitle}>Encontre seu próximo lar</Text>
 
-        {/* Location Bar */}
-        <View style={styles.locationBar}>
-          <View style={styles.locationLeft}>
-            <View style={styles.locationIcon}>
-              <Feather name="map-pin" size={14} color={colors.blue} />
+          {/* Location Bar */}
+          <TouchableOpacity
+            style={styles.locationBar}
+            onPress={() => setLocationSheetVisible(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.locationLeft}>
+              <View style={styles.locationIcon}>
+                <Feather name="map-pin" size={14} color={colors.blue} />
+              </View>
+              <View>
+                <Text style={styles.locationLabel}>LOCALIZAÇÃO</Text>
+                <Text style={styles.locationValue} numberOfLines={1}>{location}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.locationLabel}>LOCALIZAÇÃO</Text>
-              <Text style={styles.locationValue}>Rio de Janeiro, RJ</Text>
+            <View style={styles.locationChange}>
+              <Text style={styles.locationChangeText}>Mudar</Text>
+              <Feather name="chevron-down" size={14} color={colors.gold} />
             </View>
-          </View>
-          <View style={styles.locationChange}>
-            <Text style={styles.locationChangeText}>Mudar</Text>
-            <Feather name="chevron-down" size={14} color={colors.gold} />
-          </View>
-        </View>
+          </TouchableOpacity>
 
-        {/* Search */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchBar}>
-            <Feather name="search" size={16} color={colors.text3} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Buscar por bairro ou endereço..."
-              placeholderTextColor={colors.text3}
-              style={styles.searchInput}
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={15} color={colors.text3} />
+          {/* Search */}
+          <View style={styles.searchRow}>
+            <View style={styles.searchBar}>
+              <Feather name="search" size={16} color={colors.text3} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Buscar por bairro ou endereço..."
+                placeholderTextColor={colors.text3}
+                style={styles.searchInput}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Feather name="x" size={15} color={colors.text3} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity style={styles.filterBtn}>
+              <Feather name="sliders" size={18} color={colors.gold} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chips}
+            contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+          >
+            {chips.map((c, i) => (
+              <TouchableOpacity
+                key={c}
+                style={[styles.chip, activeChip === i && styles.chipActive]}
+                onPress={() => setActiveChip(i)}
+              >
+                <Text style={[styles.chipText, activeChip === i && styles.chipTextActive]}>
+                  {c}
+                </Text>
               </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Listings */}
+          <View style={{ marginTop: 4 }}>
+            {filtered.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Feather name="home" size={36} color={colors.text3} />
+                <Text style={styles.emptyTitle}>Nenhum imóvel encontrado</Text>
+                <Text style={styles.emptyText}>Tente ajustar os filtros de busca</Text>
+                <TouchableOpacity
+                  style={styles.clearFiltersBtn}
+                  onPress={() => { setSearch(""); setActiveChip(0); }}
+                >
+                  <Feather name="x-circle" size={14} color={colors.gold} />
+                  <Text style={styles.clearFiltersText}>Limpar filtros</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              filtered.map((p) => <PropertyCard key={p.id} property={p} />)
             )}
           </View>
-          <TouchableOpacity style={styles.filterBtn}>
-            <Feather name="sliders" size={18} color={colors.gold} />
-          </TouchableOpacity>
         </View>
+      </ScrollView>
 
-        {/* Chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chips}
-          contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-        >
-          {chips.map((c, i) => (
-            <TouchableOpacity
-              key={c}
-              style={[styles.chip, activeChip === i && styles.chipActive]}
-              onPress={() => setActiveChip(i)}
-            >
-              <Text style={[styles.chipText, activeChip === i && styles.chipTextActive]}>
-                {c}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Listings */}
-        <View style={{ marginTop: 4 }}>
-          {filtered.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Feather name="home" size={36} color={colors.text3} />
-              <Text style={styles.emptyTitle}>Nenhum imóvel encontrado</Text>
-              <Text style={styles.emptyText}>Tente ajustar os filtros de busca</Text>
-              <TouchableOpacity
-                style={styles.clearFiltersBtn}
-                onPress={() => { setSearch(""); setActiveChip(0); }}
-              >
-                <Feather name="x-circle" size={14} color={colors.gold} />
-                <Text style={styles.clearFiltersText}>Limpar filtros</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            filtered.map((p) => <PropertyCard key={p.id} property={p} />)
-          )}
-        </View>
-      </View>
-    </ScrollView>
+      <LocationSheet
+        visible={locationSheetVisible}
+        currentLocation={location}
+        onClose={() => setLocationSheetVisible(false)}
+        onConfirm={(loc) => setLocation(loc)}
+      />
+    </>
   );
 }
 
@@ -142,7 +158,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 18,
   },
-  locationLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  locationLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   locationIcon: {
     width: 28,
     height: 28,
@@ -162,6 +178,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600" as const,
     color: colors.text,
+    maxWidth: 200,
   },
   locationChange: {
     flexDirection: "row",
