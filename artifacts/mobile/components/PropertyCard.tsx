@@ -1,10 +1,10 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
 import {
   Image,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -45,7 +45,15 @@ export function PropertyCard({ property }: { property: Property }) {
           style={styles.image}
           resizeMode="cover"
         />
-        <View style={styles.imageOverlay} />
+
+        {/* Gradient overlay covering the entire info section */}
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.82)", "rgba(0,0,0,0.96)"]}
+          locations={[0, 0.35, 0.7, 1]}
+          style={styles.gradient}
+        />
+
+        {/* Match badge + save button */}
         <View style={styles.topRow}>
           <View
             style={[
@@ -70,6 +78,8 @@ export function PropertyCard({ property }: { property: Property }) {
             />
           </TouchableOpacity>
         </View>
+
+        {/* All info inside the image, over the gradient */}
         <View style={styles.bottomContent}>
           <View style={styles.tagRow}>
             <View
@@ -93,6 +103,7 @@ export function PropertyCard({ property }: { property: Property }) {
               <Text style={styles.tagText}>{property.type.toUpperCase()}</Text>
             </View>
           </View>
+
           <View style={styles.priceRow}>
             <View>
               <Text style={styles.price}>
@@ -110,22 +121,24 @@ export function PropertyCard({ property }: { property: Property }) {
               <Text style={styles.ratingCount}>({property.reviews})</Text>
             </View>
           </View>
-        </View>
-      </View>
-      <View style={styles.statsRow}>
-        <View style={styles.stat}>
-          <Feather name="home" size={13} color={colors.gold} />
-          <Text style={styles.statVal}>{property.beds} quartos</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Feather name="droplet" size={13} color={colors.gold} />
-          <Text style={styles.statVal}>{property.baths} banheiro</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Feather name="maximize-2" size={13} color={colors.gold} />
-          <Text style={styles.statVal}>{property.area}</Text>
+
+          {/* Stats row — now inside the overlay */}
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <Feather name="home" size={12} color={colors.gold} />
+              <Text style={styles.statVal}>{property.beds} quartos</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Feather name="droplet" size={12} color={colors.gold} />
+              <Text style={styles.statVal}>{property.baths} banheiro</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Feather name="maximize-2" size={12} color={colors.gold} />
+              <Text style={styles.statVal}>{property.area}</Text>
+            </View>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -142,7 +155,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   imageContainer: {
-    height: 220,
+    height: 280,
     position: "relative",
   },
   image: {
@@ -151,14 +164,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   } as any,
-  imageOverlay: {
+  gradient: {
     position: "absolute",
-    inset: 0,
-    backgroundColor: "transparent",
-    backgroundImage: Platform.OS === "web"
-      ? "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)"
-      : undefined,
-  } as any,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "75%",
+  },
   topRow: {
     position: "absolute",
     top: 12,
@@ -201,10 +213,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 14,
+    paddingBottom: 16,
   },
   tagRow: { flexDirection: "row", gap: 7, marginBottom: 8 },
   tag: {
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     borderRadius: 20,
     paddingVertical: 3,
     paddingHorizontal: 10,
@@ -226,6 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    marginBottom: 12,
   },
   price: {
     fontSize: 22,
@@ -250,10 +264,14 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  stat: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center" },
-  statVal: { fontSize: 12, color: colors.text2 },
-  statDivider: { width: 1, height: 16, backgroundColor: colors.border },
+  stat: { flex: 1, flexDirection: "row", alignItems: "center", gap: 5, justifyContent: "center" },
+  statVal: { fontSize: 12, color: "rgba(255,255,255,0.75)" },
+  statDivider: { width: 1, height: 14, backgroundColor: "rgba(255,255,255,0.12)" },
 });
