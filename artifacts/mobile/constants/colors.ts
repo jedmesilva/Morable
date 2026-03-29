@@ -1,0 +1,28 @@
+const colors = {
+  bg: "#0d1117",
+  surface: "#131920",
+  surface2: "#1a2230",
+  border: "rgba(255,255,255,0.07)",
+  border2: "rgba(255,255,255,0.12)",
+  gold: "#c9a96e",
+  goldDim: "rgba(201,169,110,0.12)",
+  goldBorder: "rgba(201,169,110,0.25)",
+  blue: "#4d7cfe",
+  blueDim: "rgba(77,124,254,0.12)",
+  green: "#3ecf8e",
+  greenDim: "rgba(62,207,142,0.10)",
+  greenBorder: "rgba(62,207,142,0.20)",
+  red: "#f66666",
+  redDim: "rgba(255,102,102,0.10)",
+  amber: "#f5a623",
+  amberDim: "rgba(245,166,35,0.10)",
+  purple: "#a78bfa",
+  purpleDim: "rgba(167,139,250,0.10)",
+  text: "#ffffff",
+  text2: "rgba(255,255,255,0.55)",
+  text3: "rgba(255,255,255,0.30)",
+  headerGrad1: "#141c2e",
+  headerGrad2: "#0d1117",
+};
+
+export default colors;
