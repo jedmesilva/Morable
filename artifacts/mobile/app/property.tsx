@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
+  Easing,
   Image,
   Modal,
   Platform,
@@ -13,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Line } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
@@ -33,42 +37,45 @@ const galleryImages = [
   require("@/assets/images/property-3.png"),
 ];
 
-const amenities = [
-  { icon: "wifi", label: "Wi-Fi", active: true },
-  { icon: "shield", label: "Portaria", active: true },
-  { icon: "package", label: "Mobiliado", active: true },
-  { icon: "truck", label: "Estacionamento", key: "parking" },
-  { icon: "activity", label: "Academia", key: "gym" },
-  { icon: "heart", label: "Pet friendly", key: "pets" },
+const occupancyData = [
+  { name: "Você · atual", period: "Mar 2026 → presente", duration: "Entrando", current: true },
+  { name: "Morador anterior", period: "Jun 2024 → Fev 2026", duration: "20 meses", current: false },
+  { name: "Morador anterior", period: "Jan 2023 → Mai 2024", duration: "16 meses", current: false },
+  { name: "Morador anterior", period: "Mar 2021 → Dez 2022", duration: "21 meses", current: false },
 ];
 
-const rules = [
-  { label: "Proibido fumar", color: colors.red, allowed: false },
-  { label: "Permitido pets", color: colors.green, allowed: true },
-  { label: "Permitido mobiliar", color: colors.green, allowed: true },
-  { label: "Ruído após 22h: proibido", color: colors.red, allowed: false },
-];
-
-const matchItems = [
-  { label: "Faixa de preço", detail: "Dentro do orçamento", pass: true },
-  { label: "Número de quartos", detail: "2 quartos — correspondente", pass: true },
-  { label: "Pet friendly", detail: "Aceita animais", pass: true },
-  { label: "Academia", detail: "Academia no condomínio", pass: false },
+const nearbyPlaces = [
+  { color: "#4ade80", label: "Metrô · 400m" },
+  { color: colors.blue, label: "Supermercado · 200m" },
+  { color: colors.amber, label: "Farmácia · 150m" },
+  { color: colors.purple, label: "Parque · 600m" },
 ];
 
 export default function PropertyScreen() {
   const { activeProperty, savedProperties, toggleSave } = useApp();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const [activeTab, setActiveTab] = useState<"details" | "match" | "reviews">("details");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const { setFullscreen } = useSystemBars();
 
-  // Enter immersive mode (hide status bar + nav bar) when the lightbox opens,
-  // restore both bars when it closes.
+  const matchBarAnim = useRef(new Animated.Value(0)).current;
+  const [matchTriggered, setMatchTriggered] = useState(false);
+  const matchSectionY = useRef(0);
+
   useEffect(() => {
     setFullscreen(lightboxIndex !== null);
   }, [lightboxIndex, setFullscreen]);
+
+  useEffect(() => {
+    if (matchTriggered && activeProperty) {
+      Animated.timing(matchBarAnim, {
+        toValue: activeProperty.match,
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [matchTriggered]);
 
   if (!activeProperty) {
     router.back();
@@ -78,13 +85,38 @@ export default function PropertyScreen() {
   const saved = savedProperties.includes(activeProperty.id);
   const img = propertyImages[activeProperty.id] || propertyImages["1"];
 
-  const getAmenityActive = (a: typeof amenities[0]) => {
-    if (a.active !== undefined) return a.active;
-    if (a.key === "parking") return activeProperty.parking;
-    if (a.key === "gym") return activeProperty.gym;
-    if (a.key === "pets") return activeProperty.pets;
-    return false;
-  };
+  const matchItems = [
+    { icon: "heart", name: "Aceita pets", detail: activeProperty.pets ? "Cães e gatos permitidos" : "Não aceita pets", pass: activeProperty.pets },
+    { icon: "wifi", name: "Internet inclusa", detail: activeProperty.wifi ? "Fibra incluída" : "Internet não inclusa", pass: activeProperty.wifi },
+    { icon: "disc", name: "Vaga de garagem", detail: activeProperty.parking ? "1 vaga coberta" : "Sem vaga", pass: activeProperty.parking },
+    { icon: "activity", name: "Academia", detail: activeProperty.gym ? "No condomínio" : "Sem academia", pass: activeProperty.gym },
+    { icon: "users", name: "Para casal", detail: "Permitido", pass: true },
+    { icon: "wind", name: "Ar condicionado", detail: "Não incluso nesta unidade", pass: false },
+  ];
+
+  const amenities = [
+    { icon: "wifi", label: "Internet", active: activeProperty.wifi },
+    { icon: "disc", label: "Garagem", active: activeProperty.parking },
+    { icon: "activity", label: "Academia", active: activeProperty.gym },
+    { icon: "heart", label: "Pets OK", active: activeProperty.pets },
+    { icon: "shield", label: "Portaria 24h", active: activeProperty.security },
+    { icon: "wind", label: "Ar cond.", active: false },
+  ];
+
+  const rules = [
+    { ok: activeProperty.pets, text: activeProperty.pets ? "Pets permitidos (cães e gatos)" : "Pets não permitidos" },
+    { ok: true, text: "Casais e famílias bem-vindos" },
+    { ok: true, text: "Home office · ambiente silencioso" },
+    { ok: false, text: "Sem festas ou eventos" },
+    { ok: false, text: "Fumar proibido nas dependências" },
+  ];
+
+  const matchCriteriaPass = matchItems.filter((m) => m.pass).length;
+
+  const matchBarWidth = matchBarAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ["0%", "100%"],
+  });
 
   return (
     <View style={styles.root}>
@@ -94,6 +126,9 @@ export default function PropertyScreen() {
           <Feather name="arrow-left" size={18} color="#fff" />
         </TouchableOpacity>
         <View style={styles.heroActions}>
+          <TouchableOpacity style={styles.heroActionBtn}>
+            <Feather name="share-2" size={16} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.heroActionBtn, saved && styles.heroActionBtnSaved]}
             onPress={() => {
@@ -101,21 +136,25 @@ export default function PropertyScreen() {
               toggleSave(activeProperty.id);
             }}
           >
-            <Feather name="heart" size={18} color={saved ? colors.red : "#fff"} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.heroActionBtn}>
-            <Feather name="share-2" size={18} color="#fff" />
+            <Feather name="heart" size={16} color={saved ? colors.red : "#fff"} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Single ScrollView: hero image + all content scroll together */}
       <ScrollView
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
+        scrollEventThrottle={16}
+        onScroll={({ nativeEvent }) => {
+          const scrollBottom =
+            nativeEvent.contentOffset.y + nativeEvent.layoutMeasurement.height;
+          if (!matchTriggered && scrollBottom > matchSectionY.current + 80) {
+            setMatchTriggered(true);
+          }
+        }}
       >
-        {/* Hero image inside scroll — tap to open fullscreen gallery */}
+        {/* ── HERO ── */}
         <TouchableOpacity
           style={styles.hero}
           activeOpacity={0.95}
@@ -125,42 +164,34 @@ export default function PropertyScreen() {
           }}
         >
           <Image source={img} style={styles.heroImage} resizeMode="cover" />
-          <View style={styles.heroOverlay} />
+          <LinearGradient
+            colors={[
+              "rgba(0,0,0,0.5)",
+              "rgba(0,0,0,0)",
+              "rgba(0,0,0,0)",
+              "rgba(0,0,0,0.88)",
+            ]}
+            locations={[0, 0.3, 0.55, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
 
-          {/* Photo count badge */}
           <View style={styles.photoCountBadge}>
-            <Feather name="image" size={11} color="rgba(255,255,255,0.7)" />
+            <Feather name="layers" size={11} color="rgba(255,255,255,0.7)" />
             <Text style={styles.photoCountText}>{galleryImages.length} fotos</Text>
           </View>
 
-          {/* Tap hint */}
-          <View style={styles.tapHint}>
-            <Feather name="maximize-2" size={13} color="rgba(255,255,255,0.9)" />
-            <Text style={styles.tapHintText}>Toque para ver em tela cheia</Text>
-          </View>
           <View style={styles.heroBottom}>
             <View style={styles.heroTagRow}>
-              <View
-                style={[
-                  styles.heroTag,
-                  activeProperty.available
-                    ? styles.heroTagAvailable
-                    : styles.heroTagUnavailable,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.heroTagText,
-                    activeProperty.available
-                      ? { color: colors.green }
-                      : { color: colors.red },
-                  ]}
-                >
-                  {activeProperty.available ? "DISPONÍVEL" : "INDISPONÍVEL"}
+              <View style={[styles.heroTag, activeProperty.available ? styles.heroTagAvailable : styles.heroTagUnavailable]}>
+                <Text style={[styles.heroTagText, { color: activeProperty.available ? colors.green : colors.red }]}>
+                  {activeProperty.available ? "● Disponível" : "● Indisponível"}
                 </Text>
               </View>
               <View style={styles.heroTag}>
-                <Text style={styles.heroTagText}>{activeProperty.type.toUpperCase()}</Text>
+                <Text style={styles.heroTagText}>{activeProperty.type}</Text>
+              </View>
+              <View style={styles.heroTag}>
+                <Text style={styles.heroTagText}>{activeProperty.floor}</Text>
               </View>
             </View>
             <View style={styles.heroPriceRow}>
@@ -169,31 +200,34 @@ export default function PropertyScreen() {
                 <Text style={styles.heroPricePer}>/mês</Text>
               </Text>
               <View style={styles.heroRating}>
-                <Feather name="star" size={12} color={colors.gold} />
+                <Feather name="star" size={12} color={colors.amber} />
                 <Text style={styles.heroRatingVal}>{activeProperty.rating}</Text>
-                <Text style={styles.heroRatingCount}>({activeProperty.reviews})</Text>
+                <Text style={styles.heroRatingCount}>({activeProperty.reviews} avaliações)</Text>
               </View>
             </View>
           </View>
         </TouchableOpacity>
-        {/* Title */}
+
+        {/* ── TITLE ── */}
         <View style={styles.titleSection}>
           <Text style={styles.propName}>{activeProperty.name}</Text>
           <View style={styles.propLocation}>
-            <Feather name="map-pin" size={13} color={colors.text2} />
+            <Feather name="map-pin" size={13} color={colors.blue} />
             <Text style={styles.propLocationText}>{activeProperty.location}</Text>
+            <View style={styles.propDistance}>
+              <Feather name="navigation" size={10} color={colors.blue} />
+              <Text style={styles.propDistanceText}>1,2 km de você</Text>
+            </View>
           </View>
-
-          {/* Quick Stats */}
           <View style={styles.quickStats}>
             {[
-              { icon: "home", val: `${activeProperty.beds}`, label: "quartos" },
-              { icon: "droplet", val: `${activeProperty.baths}`, label: "banheiro" },
-              { icon: "maximize-2", val: activeProperty.area, label: "área" },
-              { icon: "layers", val: activeProperty.floor, label: "andar" },
+              { icon: "home", val: `${activeProperty.beds}`, label: "Quartos" },
+              { icon: "droplet", val: `${activeProperty.baths}`, label: "Banheiros" },
+              { icon: "maximize-2", val: activeProperty.area, label: "Área" },
+              { icon: "disc", val: activeProperty.parking ? "1" : "0", label: "Vaga" },
             ].map((s) => (
               <View key={s.label} style={styles.qsItem}>
-                <Feather name={s.icon as any} size={16} color={colors.gold} />
+                <Feather name={s.icon as any} size={15} color={colors.gold} style={styles.qsIcon} />
                 <Text style={styles.qsVal}>{s.val}</Text>
                 <Text style={styles.qsLabel}>{s.label}</Text>
               </View>
@@ -203,208 +237,254 @@ export default function PropertyScreen() {
 
         <View style={styles.divider} />
 
-        {/* Tabs */}
-        <View style={styles.tabRow}>
-          {(["details", "match", "reviews"] as const).map((t) => (
+        {/* ── GALLERY ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Fotos e vídeos</Text>
+            <View style={styles.sectionLine} />
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {galleryImages.map((src, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.galleryThumb}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setLightboxIndex(i);
+                }}
+              >
+                <Image source={src} style={styles.galleryThumbImg} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity
-              key={t}
-              style={[styles.tabBtn, activeTab === t && styles.tabBtnActive]}
-              onPress={() => setActiveTab(t)}
+              style={styles.gallerySeeAll}
+              onPress={() => setLightboxIndex(0)}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.tabBtnText, activeTab === t && styles.tabBtnTextActive]}>
-                {t === "details" ? "Detalhes" : t === "match" ? "Match" : "Avaliações"}
-              </Text>
+              <Text style={styles.gallerySeeAllCount}>+3</Text>
+              <Text style={styles.gallerySeeAllLabel}>VER TUDO</Text>
             </TouchableOpacity>
-          ))}
+          </ScrollView>
         </View>
 
-        {activeTab === "details" && (
-          <>
-            {/* Gallery strip */}
-            <View style={styles.section}>
-              <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>FOTOS</Text>
-                <View style={styles.sectionLine} />
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryStrip}>
-                {galleryImages.map((src, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.galleryThumb}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setLightboxIndex(i);
-                    }}
-                  >
-                    <Image source={src} style={styles.galleryThumbImg} resizeMode="cover" />
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  style={styles.gallerySeeAll}
-                  onPress={() => setLightboxIndex(0)}
-                  activeOpacity={0.7}
-                >
-                  <Feather name="grid" size={16} color={colors.gold} />
-                  <Text style={styles.gallerySeeAllText}>Ver tudo</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
+        <View style={styles.divider} />
 
-            {/* Amenities */}
-            <View style={styles.section}>
-              <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>COMODIDADES</Text>
-                <View style={styles.sectionLine} />
-              </View>
-              <View style={styles.amenitiesGrid}>
-                {amenities.map((a) => {
-                  const active = getAmenityActive(a);
-                  return (
-                    <View
-                      key={a.label}
-                      style={[styles.amenityItem, !active && styles.amenityItemInactive]}
-                    >
-                      <Feather name={a.icon as any} size={20} color={active ? colors.gold : colors.text3} />
-                      <Text style={styles.amenityLabel}>{a.label}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
+        {/* ── MATCH / POR QUE É PRA VOCÊ ── */}
+        <View
+          style={styles.section}
+          onLayout={({ nativeEvent }) => {
+            matchSectionY.current = nativeEvent.layout.y;
+          }}
+        >
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Por que é pra você</Text>
+            <View style={styles.sectionLine} />
+          </View>
 
-            <View style={styles.divider} />
-
-            {/* Rules */}
-            <View style={styles.section}>
-              <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>REGRAS DO IMÓVEL</Text>
-                <View style={styles.sectionLine} />
+          <View style={styles.matchHeader}>
+            <View>
+              <View style={styles.matchScoreRow}>
+                <Text style={styles.matchNumber}>{activeProperty.match}</Text>
+                <Text style={styles.matchPct}>%</Text>
               </View>
-              <View style={styles.rulesList}>
-                {rules.map((r) => (
-                  <View key={r.label} style={styles.ruleItem}>
-                    <View style={[styles.ruleDot, { backgroundColor: r.color }]} />
-                    <Text style={styles.ruleText}>{r.label}</Text>
-                    <Feather
-                      name={r.allowed ? "check" : "x"}
-                      size={14}
-                      color={r.allowed ? colors.green : colors.red}
-                    />
-                  </View>
-                ))}
-              </View>
+              <Text style={styles.matchLabel}>de compatibilidade</Text>
             </View>
-          </>
-        )}
-
-        {activeTab === "match" && (
-          <View style={styles.section}>
-            <View style={styles.matchHeader}>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-                  <Text style={styles.matchNumber}>{activeProperty.match}</Text>
-                  <Text style={styles.matchPct}>%</Text>
-                </View>
-                <Text style={styles.matchLabel}>de compatibilidade</Text>
-              </View>
-            </View>
-            <View style={styles.matchBarWrap}>
-              <View style={[styles.matchBarFill, { width: `${activeProperty.match}%` }]} />
-            </View>
-            <View style={styles.matchItems}>
-              {matchItems.map((m) => (
-                <View
-                  key={m.label}
-                  style={[styles.matchItem, m.pass ? styles.matchItemPass : styles.matchItemFail]}
-                >
+            <View style={styles.matchMeta}>
+              <Text style={styles.matchMetaText}>{matchCriteriaPass} de {matchItems.length} critérios</Text>
+              <View style={styles.matchMiniBarRow}>
+                {matchItems.map((m, i) => (
                   <View
+                    key={i}
                     style={[
-                      styles.matchItemIcon,
-                      m.pass ? styles.matchItemIconPass : styles.matchItemIconFail,
+                      styles.matchMiniBar,
+                      { backgroundColor: m.pass ? colors.green : "rgba(255,102,102,0.4)" },
                     ]}
-                  >
-                    <Feather
-                      name={m.pass ? "check" : "x"}
-                      size={14}
-                      color={m.pass ? colors.green : colors.red}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.matchItemName}>{m.label}</Text>
-                    <Text style={styles.matchItemDetail}>{m.detail}</Text>
-                  </View>
-                </View>
-              ))}
+                  />
+                ))}
+              </View>
             </View>
           </View>
-        )}
 
-        {activeTab === "reviews" && (
-          <View style={styles.section}>
-            <View style={styles.reviewSummary}>
-              <View style={styles.reviewScoreLeft}>
-                <Text style={styles.reviewScoreBig}>{activeProperty.rating}</Text>
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Feather
-                      key={i}
-                      name="star"
-                      size={14}
-                      color={i <= Math.round(activeProperty.rating) ? colors.gold : colors.border}
-                    />
-                  ))}
-                </View>
-                <Text style={styles.reviewCount}>{activeProperty.reviews} avaliações</Text>
-              </View>
-            </View>
+          <View style={styles.matchBarWrap}>
+            <Animated.View style={[styles.matchBarFill, { width: matchBarWidth }]} />
+          </View>
 
-            {[
-              { initials: "R.M.", color: "#2a4a7f", name: "R. Mendes", tenure: "20 meses", stars: 5, text: "Imóvel excelente, muito silencioso. A gestão foi super eficiente em todos os chamados. Entrega e saída sem burocracia, tudo pelo app." },
-              { initials: "C.A.", color: "#2a6b4a", name: "C. Almeida", tenure: "16 meses", stars: 4, text: "Apartamento bem conservado, estrutura boa. Tive um problema com o chuveiro mas foi resolvido em dois dias." },
-            ].map((r) => (
-              <View key={r.name} style={styles.reviewCard}>
-                <View style={styles.reviewTop}>
-                  <View style={[styles.reviewAvatar, { backgroundColor: r.color }]}>
-                    <Text style={styles.reviewAvatarText}>{r.initials}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.reviewName}>{r.name}</Text>
-                    <Text style={styles.reviewTenure}>{r.tenure}</Text>
-                  </View>
-                  <View style={styles.starsRow}>
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Feather
-                        key={i}
-                        name="star"
-                        size={12}
-                        color={i <= r.stars ? colors.gold : colors.border}
-                      />
-                    ))}
-                  </View>
+          <View style={styles.matchItems}>
+            {matchItems.map((m, i) => (
+              <View key={i} style={[styles.matchItem, m.pass ? styles.matchItemPass : styles.matchItemFail]}>
+                <View style={[styles.matchItemIcon, m.pass ? styles.matchItemIconPass : styles.matchItemIconFail]}>
+                  <Feather name={m.icon as any} size={14} color={m.pass ? colors.green : colors.red} />
                 </View>
-                <Text style={styles.reviewText}>{r.text}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.matchItemName}>{m.name}</Text>
+                  <Text style={styles.matchItemDetail}>{m.detail}</Text>
+                </View>
+                <Feather
+                  name={m.pass ? "check-circle" : "alert-circle"}
+                  size={16}
+                  color={m.pass ? colors.green : colors.red}
+                />
               </View>
             ))}
           </View>
-        )}
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* ── COMODIDADES + REGRAS ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Comodidades</Text>
+            <View style={styles.sectionLine} />
+          </View>
+          <View style={styles.amenitiesGrid}>
+            {amenities.map((a) => (
+              <View
+                key={a.label}
+                style={[styles.amenityItem, a.active ? styles.amenityItemActive : styles.amenityItemInactive]}
+              >
+                <Feather name={a.icon as any} size={16} color={a.active ? colors.gold : colors.text3} />
+                <Text style={[styles.amenityLabel, !a.active && { color: colors.text3 }]}>{a.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={[styles.sectionTitleRow, { marginTop: 20 }]}>
+            <Text style={styles.sectionTitle}>Regras do imóvel</Text>
+            <View style={styles.sectionLine} />
+          </View>
+          <View style={styles.rulesList}>
+            {rules.map((r, i) => (
+              <View key={i} style={styles.ruleItem}>
+                <View style={[styles.ruleDot, { backgroundColor: r.ok ? colors.green : colors.red }]} />
+                <Text style={styles.ruleText}>{r.text}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* ── HISTÓRICO DE OCUPAÇÃO ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Histórico de ocupação</Text>
+            <View style={styles.sectionLine} />
+          </View>
+
+          <View style={styles.occStatsRow}>
+            {[
+              { val: "4", label: "Moradores", valueColor: colors.gold },
+              { val: "19m", label: "Tempo médio", valueColor: colors.green },
+              { val: "2021", label: "Desde", valueColor: colors.text },
+            ].map((s, i) => (
+              <View key={i} style={styles.occStat}>
+                <Text style={[styles.occStatVal, { color: s.valueColor }]}>{s.val}</Text>
+                <Text style={styles.occStatLabel}>{s.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.timeline}>
+            {occupancyData.map((o, i) => (
+              <View key={i} style={styles.timelineItem}>
+                <View style={styles.timelineLeft}>
+                  <View style={[styles.timelineDot, o.current ? styles.timelineDotCurrent : styles.timelineDotPast]} />
+                  {i < occupancyData.length - 1 && <View style={styles.timelineLine} />}
+                </View>
+                <View style={[styles.timelineCard, o.current && styles.timelineCardCurrent]}>
+                  <View style={styles.timelineCardHeader}>
+                    <Text style={styles.timelineName}>{o.name}</Text>
+                    <View style={[styles.timelineBadge, o.current ? styles.timelineBadgeCurrent : styles.timelineBadgePast]}>
+                      <Text style={[styles.timelineBadgeText, { color: o.current ? colors.green : colors.text3 }]}>
+                        {o.duration}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.timelinePeriod}>{o.period}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* ── LOCALIZAÇÃO ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Localização</Text>
+            <View style={styles.sectionLine} />
+          </View>
+
+          <View style={styles.mapContainer}>
+            <Svg
+              style={StyleSheet.absoluteFillObject as any}
+              width="100%"
+              height="100%"
+            >
+              <Line x1="0" y1="80" x2="100%" y2="80" stroke={colors.blue} strokeWidth="8" strokeOpacity="0.14" />
+              <Line x1="0" y1="110" x2="100%" y2="110" stroke={colors.blue} strokeWidth="3" strokeOpacity="0.14" />
+              <Line x1="120" y1="0" x2="120" y2="100%" stroke={colors.blue} strokeWidth="5" strokeOpacity="0.14" />
+              <Line x1="240" y1="0" x2="240" y2="100%" stroke={colors.blue} strokeWidth="3" strokeOpacity="0.14" />
+              <Line x1="310" y1="0" x2="260" y2="100%" stroke={colors.blue} strokeWidth="2" strokeOpacity="0.10" />
+            </Svg>
+
+            <View style={styles.mapPin}>
+              <View style={styles.mapPinDot} />
+              <View style={styles.mapPinLine} />
+            </View>
+
+            <View style={styles.mapLabel}>
+              <Text style={styles.mapLabelText}>{activeProperty.location}</Text>
+            </View>
+
+            <View style={styles.mapOpenLabel}>
+              <Feather name="navigation" size={11} color={colors.blue} />
+              <Text style={styles.mapOpenLabelText}>Abrir no mapa</Text>
+            </View>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nearbyChipsScroll}>
+            {nearbyPlaces.map((p, i) => (
+              <View key={i} style={styles.nearbyChip}>
+                <View style={[styles.nearbyChipDot, { backgroundColor: p.color }]} />
+                <Text style={styles.nearbyChipText}>{p.label}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* CTA */}
-      <View style={[styles.ctaBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 12 }]}>
+      {/* ── BOTTOM CTA ── */}
+      <LinearGradient
+        colors={["rgba(13,17,23,0)", "rgba(13,17,23,1)"]}
+        locations={[0, 0.5]}
+        style={[styles.ctaBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}
+      >
         <TouchableOpacity
-          style={styles.ctaBtn}
-          onPress={() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)}
+          style={[styles.saveBtn, saved && styles.saveBtnSaved]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            toggleSave(activeProperty.id);
+          }}
         >
-          <Text style={styles.ctaBtnText}>Agendar visita</Text>
-          <Feather name="calendar" size={18} color="#fff" />
+          <Feather name="heart" size={20} color={saved ? colors.red : colors.text2} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.ctaSecondary}>
-          <Feather name="message-circle" size={20} color={colors.gold} />
+        <TouchableOpacity
+          style={styles.subscribeBtn}
+          onPress={() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)}
+          activeOpacity={0.85}
+        >
+          <Feather name="zap" size={18} color="rgba(255,255,255,0.9)" />
+          <Text style={styles.subscribeBtnText}>Assinar este imóvel</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
-      {/* Lightbox fullscreen modal */}
+      {/* ── LIGHTBOX ── */}
       <Modal
         visible={lightboxIndex !== null}
         transparent={false}
@@ -413,21 +493,16 @@ export default function PropertyScreen() {
         onRequestClose={() => setLightboxIndex(null)}
       >
         <View style={styles.lightbox}>
-          {/* Close + counter */}
-          <View style={[styles.lightboxTopBar, { paddingTop: topPad + 8 }]}>
-            <TouchableOpacity
-              style={styles.lightboxClose}
-              onPress={() => setLightboxIndex(null)}
-            >
-              <Feather name="x" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.lightboxCounter}>
-              {(lightboxIndex ?? 0) + 1} / {galleryImages.length}
-            </Text>
-            <View style={{ width: 40 }} />
-          </View>
+          <Text style={[styles.lightboxCounter, { top: insets.top + 12 }]}>
+            {(lightboxIndex ?? 0) + 1} / {galleryImages.length}
+          </Text>
+          <TouchableOpacity
+            style={[styles.lightboxClose, { top: insets.top + 6 }]}
+            onPress={() => setLightboxIndex(null)}
+          >
+            <Feather name="x" size={18} color="#fff" />
+          </TouchableOpacity>
 
-          {/* Main image */}
           <View style={styles.lightboxImgWrap}>
             <Image
               source={galleryImages[lightboxIndex ?? 0]}
@@ -436,17 +511,13 @@ export default function PropertyScreen() {
             />
           </View>
 
-          {/* Thumbnail strip */}
           <View style={[styles.lightboxStrip, { paddingBottom: insets.bottom + 20 }]}>
             {galleryImages.map((src, i) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setLightboxIndex(i)}
                 activeOpacity={0.8}
-                style={[
-                  styles.lbThumb,
-                  lightboxIndex === i && styles.lbThumbActive,
-                ]}
+                style={[styles.lbThumb, lightboxIndex === i && styles.lbThumbActive]}
               >
                 <Image source={src} style={styles.lbThumbImg} resizeMode="cover" />
               </TouchableOpacity>
@@ -460,166 +531,48 @@ export default function PropertyScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  hero: { height: 320, position: "relative" },
-  heroImage: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-  } as any,
-  heroOverlay: {
-    position: "absolute",
-    inset: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
+
+  /* Hero */
+  hero: { height: 340, position: "relative", overflow: "hidden" },
+  heroImage: { position: "absolute", inset: 0, width: "100%", height: "100%" } as any,
   photoCountBadge: {
-    position: "absolute",
-    bottom: 64,
-    right: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+    position: "absolute", bottom: 64, right: 20,
+    flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: "rgba(0,0,0,0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
   },
   photoCountText: { fontSize: 11, color: "rgba(255,255,255,0.7)" },
-  tapHint: {
-    position: "absolute",
-    bottom: 100,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-    borderRadius: 30,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  tapHintText: { fontSize: 12, fontWeight: "600" as const, color: "rgba(255,255,255,0.9)" },
-  galleryStrip: { flexDirection: "row" as const },
-  galleryThumb: {
-    width: 88,
-    height: 72,
-    borderRadius: 12,
-    overflow: "hidden",
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  galleryThumbImg: { width: "100%", height: "100%" },
-  gallerySeeAll: {
-    width: 88,
-    height: 72,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: "dashed" as const,
-    borderColor: "rgba(201,169,110,0.35)",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    marginRight: 8,
-  },
-  gallerySeeAllText: { fontSize: 10, color: colors.gold, fontWeight: "500" as const, letterSpacing: 0.5 },
-  lightbox: { flex: 1, backgroundColor: "#000" },
-  lightboxTopBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  lightboxClose: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lightboxCounter: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: "rgba(255,255,255,0.7)",
-  },
-  lightboxImgWrap: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lightboxImg: { width: SCREEN_W, height: SCREEN_H * 0.65 },
-  lightboxStrip: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  lbThumb: {
-    width: 56,
-    height: 44,
-    borderRadius: 8,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  lbThumbActive: { borderColor: colors.gold },
-  lbThumbImg: { width: "100%", height: "100%" },
   heroTopBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    zIndex: 10,
+    position: "absolute", left: 0, right: 0,
+    paddingHorizontal: 20, flexDirection: "row",
+    justifyContent: "space-between", alignItems: "center", zIndex: 10,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(0,0,0,0.45)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
+    alignItems: "center", justifyContent: "center",
   },
   heroActions: { flexDirection: "row", gap: 8 },
   heroActionBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(0,0,0,0.45)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
+    alignItems: "center", justifyContent: "center",
   },
   heroActionBtnSaved: {
     backgroundColor: "rgba(255,102,102,0.25)",
     borderColor: "rgba(255,102,102,0.4)",
   },
   heroBottom: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
+    position: "absolute", bottom: 0, left: 0, right: 0, padding: 20,
   },
-  heroTagRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  heroTagRow: { flexDirection: "row", gap: 8, marginBottom: 10, flexWrap: "wrap" },
   heroTag: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 20,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 20,
+    paddingVertical: 4, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
   },
   heroTagAvailable: {
     backgroundColor: "rgba(62,207,142,0.18)",
@@ -629,274 +582,243 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,102,102,0.18)",
     borderColor: "rgba(255,102,102,0.35)",
   },
-  heroTagText: {
-    fontSize: 10,
-    fontWeight: "600" as const,
-    color: "rgba(255,255,255,0.85)",
-  },
-  heroPriceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  heroPrice: {
-    fontSize: 26,
-    fontWeight: "800" as const,
-    color: "#fff",
-  },
-  heroPricePer: { fontSize: 13, fontWeight: "400" as const, color: colors.text2 },
+  heroTagText: { fontSize: 10, fontWeight: "600" as const, color: "rgba(255,255,255,0.85)", letterSpacing: 0.5 },
+  heroPriceRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  heroPrice: { fontFamily: "Sora_800ExtraBold", fontSize: 28, color: "#fff" },
+  heroPricePer: { fontFamily: "DMSans_400Regular", fontSize: 13, color: "rgba(255,255,255,0.55)" },
   heroRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+    flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
   },
-  heroRatingVal: { fontSize: 13, fontWeight: "600" as const, color: "#fff" },
-  heroRatingCount: { fontSize: 11, color: colors.text3 },
+  heroRatingVal: { fontFamily: "Sora_600SemiBold", fontSize: 13, color: "#fff" },
+  heroRatingCount: { fontSize: 11, color: "rgba(255,255,255,0.45)" },
+
+  /* Scroll */
   scrollContent: { flex: 1 },
-  titleSection: { padding: 20 },
-  propName: {
-    fontSize: 22,
-    fontWeight: "700" as const,
-    color: colors.text,
-    marginBottom: 6,
-  },
-  propLocation: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginBottom: 16,
-  },
-  propLocationText: { fontSize: 13, color: colors.text2 },
-  quickStats: {
-    flexDirection: "row",
-    gap: 8,
-  },
+
+  /* Title */
+  titleSection: { padding: 20, paddingBottom: 0 },
+  propName: { fontFamily: "Sora_700Bold", fontSize: 22, color: colors.text, marginBottom: 6 },
+  propLocation: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 16 },
+  propLocationText: { fontSize: 13, color: colors.text2, flex: 1 },
+  propDistance: { flexDirection: "row", alignItems: "center", gap: 3 },
+  propDistanceText: { fontSize: 11, color: colors.blue, fontFamily: "DMSans_500Medium" },
+
+  /* Quick stats */
+  quickStats: { flexDirection: "row", gap: 8, marginBottom: 20 },
   qsItem: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    alignItems: "center",
-    gap: 4,
+    flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 14, paddingVertical: 12, paddingHorizontal: 8, alignItems: "center",
   },
-  qsVal: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: colors.text,
-  },
+  qsIcon: { marginBottom: 5 },
+  qsVal: { fontFamily: "Sora_600SemiBold", fontSize: 14, color: colors.text, marginBottom: 2 },
   qsLabel: {
-    fontSize: 9,
-    fontWeight: "500" as const,
-    color: colors.text3,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
+    fontSize: 9, fontWeight: "500" as const, color: colors.text3,
+    letterSpacing: 0.8, textTransform: "uppercase",
   },
-  divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 20 },
-  tabRow: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 8,
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tabBtnActive: {
-    backgroundColor: "rgba(201,169,110,0.14)",
-    borderColor: colors.goldBorder,
-  },
-  tabBtnText: { fontSize: 12, fontWeight: "600" as const, color: colors.text3 },
-  tabBtnTextActive: { color: colors.gold },
-  section: { paddingHorizontal: 20, paddingBottom: 20 },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+
+  /* Divider */
+  divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 20, marginVertical: 4 },
+
+  /* Sections */
+  section: { padding: 20, paddingBottom: 0 },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: "600" as const,
-    color: colors.text3,
-    letterSpacing: 1.2,
+    fontFamily: "Sora_600SemiBold", fontSize: 13, color: colors.text3,
+    letterSpacing: 1.2, textTransform: "uppercase",
   },
   sectionLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  amenitiesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  amenityItem: {
-    width: "30%",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    gap: 7,
+
+  /* Gallery */
+  galleryThumb: {
+    width: 88, height: 72, borderRadius: 12, overflow: "hidden",
+    marginRight: 8, borderWidth: 1, borderColor: colors.border,
   },
-  amenityItemInactive: {
-    borderColor: colors.border,
-    opacity: 0.4,
+  galleryThumbImg: { width: "100%", height: "100%" },
+  gallerySeeAll: {
+    width: 88, height: 72, borderRadius: 12,
+    borderWidth: 1, borderStyle: "dashed" as const, borderColor: "rgba(255,255,255,0.15)",
+    alignItems: "center", justifyContent: "center", gap: 4, marginRight: 8,
   },
-  amenityLabel: { fontSize: 11, fontWeight: "500" as const, color: colors.text2, textAlign: "center" },
-  rulesList: { gap: 8 },
-  ruleItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-  },
-  ruleDot: { width: 6, height: 6, borderRadius: 3 },
-  ruleText: { flex: 1, fontSize: 13, color: colors.text2 },
-  matchHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  matchNumber: {
-    fontSize: 48,
-    fontWeight: "800" as const,
-    color: colors.green,
-    lineHeight: 52,
-  },
-  matchPct: { fontSize: 18, fontWeight: "600" as const, color: colors.green },
+  gallerySeeAllCount: { fontFamily: "Sora_600SemiBold", fontSize: 13, color: colors.text3 },
+  gallerySeeAllLabel: { fontSize: 9, textTransform: "uppercase", letterSpacing: 0.8, color: colors.text3 },
+
+  /* Match */
+  matchHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
+  matchScoreRow: { flexDirection: "row", alignItems: "baseline", gap: 2 },
+  matchNumber: { fontFamily: "Sora_800ExtraBold", fontSize: 42, color: colors.green, lineHeight: 48 },
+  matchPct: { fontFamily: "Sora_600SemiBold", fontSize: 18, color: colors.green },
   matchLabel: { fontSize: 11, color: colors.text3, marginTop: 2 },
+  matchMeta: { alignItems: "flex-end" },
+  matchMetaText: { fontSize: 11, color: colors.text3, marginBottom: 6 },
+  matchMiniBarRow: { flexDirection: "row", gap: 4 },
+  matchMiniBar: { width: 18, height: 4, borderRadius: 2 },
   matchBarWrap: {
-    height: 6,
     backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 16,
+    borderRadius: 4, height: 6, overflow: "hidden", marginBottom: 16,
   },
   matchBarFill: {
     height: "100%",
-    borderRadius: 3,
     backgroundColor: colors.green,
+    borderRadius: 4,
   },
   matchItems: { gap: 8 },
   matchItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    padding: 10, borderRadius: 12, borderWidth: 1,
   },
-  matchItemPass: {
-    backgroundColor: "rgba(62,207,142,0.06)",
-    borderColor: "rgba(62,207,142,0.15)",
-  },
-  matchItemFail: {
-    backgroundColor: "rgba(255,102,102,0.05)",
-    borderColor: "rgba(255,102,102,0.12)",
-  },
+  matchItemPass: { backgroundColor: "rgba(62,207,142,0.06)", borderColor: "rgba(62,207,142,0.15)" },
+  matchItemFail: { backgroundColor: "rgba(255,102,102,0.05)", borderColor: "rgba(255,102,102,0.12)" },
   matchItemIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 28, height: 28, borderRadius: 8,
+    alignItems: "center", justifyContent: "center",
   },
   matchItemIconPass: { backgroundColor: "rgba(62,207,142,0.15)" },
   matchItemIconFail: { backgroundColor: "rgba(255,102,102,0.12)" },
   matchItemName: { fontSize: 13, fontWeight: "500" as const, color: colors.text },
   matchItemDetail: { fontSize: 11, color: colors.text3, marginTop: 1 },
-  reviewSummary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+
+  /* Amenities */
+  amenitiesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
+  amenityItem: {
+    width: "31%", backgroundColor: colors.surface, borderWidth: 1,
+    borderRadius: 14, paddingVertical: 12, paddingHorizontal: 10,
+    alignItems: "center", gap: 7,
   },
-  reviewScoreLeft: { alignItems: "center" },
-  reviewScoreBig: {
-    fontSize: 48,
-    fontWeight: "800" as const,
-    color: colors.text,
-    lineHeight: 52,
-    marginBottom: 6,
+  amenityItemActive: { borderColor: "rgba(201,169,110,0.25)" },
+  amenityItemInactive: { borderColor: colors.border, opacity: 0.45 },
+  amenityLabel: { fontSize: 11, fontWeight: "500" as const, color: colors.text2, textAlign: "center" },
+
+  /* Rules */
+  rulesList: { gap: 8 },
+  ruleItem: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    padding: 10, paddingHorizontal: 14,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12,
   },
-  starsRow: { flexDirection: "row", gap: 3, marginBottom: 4 },
-  reviewCount: { fontSize: 11, color: colors.text3 },
-  reviewCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 12,
+  ruleDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
+  ruleText: { fontSize: 13, color: colors.text2, flex: 1 },
+
+  /* Occupancy */
+  occStatsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  occStat: {
+    flex: 1, backgroundColor: colors.surface, borderWidth: 1,
+    borderColor: colors.border, borderRadius: 14, padding: 14, alignItems: "center",
   },
-  reviewTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
+  occStatVal: { fontFamily: "Sora_700Bold", fontSize: 20, marginBottom: 3 },
+  occStatLabel: { fontSize: 10, color: colors.text3, textTransform: "uppercase", letterSpacing: 0.7 },
+  timeline: { paddingLeft: 20 },
+  timelineItem: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  timelineLeft: { alignItems: "center", paddingTop: 4 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5 },
+  timelineDotCurrent: {
+    backgroundColor: colors.green,
+    shadowColor: colors.green, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8, shadowRadius: 6,
   },
-  reviewAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+  timelineDotPast: { backgroundColor: colors.text3 },
+  timelineLine: { flex: 1, width: 1, backgroundColor: colors.border, marginTop: 4 },
+  timelineCard: {
+    flex: 1, backgroundColor: colors.surface, borderWidth: 1,
+    borderColor: colors.border, borderRadius: 14, padding: 12,
   },
-  reviewAvatarText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#fff",
+  timelineCardCurrent: { borderColor: "rgba(62,207,142,0.2)" },
+  timelineCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 3 },
+  timelineName: { fontSize: 13, fontWeight: "500" as const, color: colors.text },
+  timelineBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 },
+  timelineBadgeCurrent: { backgroundColor: "rgba(62,207,142,0.12)" },
+  timelineBadgePast: { backgroundColor: "rgba(255,255,255,0.06)" },
+  timelineBadgeText: { fontSize: 11, fontWeight: "600" as const },
+  timelinePeriod: { fontSize: 11, color: colors.text3 },
+
+  /* Map */
+  mapContainer: {
+    height: 160, borderRadius: 18, overflow: "hidden",
+    borderWidth: 1, borderColor: colors.border,
+    backgroundColor: "#0d1e2e", marginBottom: 12,
+    alignItems: "center", justifyContent: "center",
   },
-  reviewName: { fontSize: 14, fontWeight: "500" as const, color: colors.text, marginBottom: 2 },
-  reviewTenure: { fontSize: 11, color: colors.text3 },
-  reviewText: { fontSize: 13, lineHeight: 20, color: colors.text2 },
+  mapPin: { alignItems: "center" },
+  mapPinDot: {
+    width: 14, height: 14, borderRadius: 7,
+    backgroundColor: colors.blue, borderWidth: 3, borderColor: "rgba(255,255,255,0.9)",
+    shadowColor: colors.blue, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7, shadowRadius: 8,
+  },
+  mapPinLine: { width: 2, height: 12, backgroundColor: "rgba(255,255,255,0.3)" },
+  mapLabel: {
+    position: "absolute", bottom: "50%", left: "50%",
+    transform: [{ translateX: -60 }, { translateY: 32 }],
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+  },
+  mapLabelText: { fontSize: 11, fontWeight: "500" as const, color: "rgba(255,255,255,0.85)" },
+  mapOpenLabel: {
+    position: "absolute", bottom: 12, right: 12,
+    flexDirection: "row", alignItems: "center", gap: 5,
+  },
+  mapOpenLabelText: { fontSize: 11, fontWeight: "600" as const, color: colors.blue },
+  nearbyChipsScroll: { marginBottom: 4 },
+  nearbyChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8,
+  },
+  nearbyChipDot: { width: 6, height: 6, borderRadius: 3 },
+  nearbyChipText: { fontSize: 11, color: colors.text2 },
+
+  /* CTA */
   ctaBar: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    backgroundColor: "rgba(13,17,23,0.97)",
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    paddingTop: 32, paddingHorizontal: 20, flexDirection: "row", gap: 10,
   },
-  ctaBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
+  saveBtn: {
+    width: 52, height: 52, borderRadius: 16,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border2,
+    alignItems: "center", justifyContent: "center",
+  },
+  saveBtnSaved: {
+    backgroundColor: "rgba(246,102,102,0.15)",
+    borderColor: "rgba(246,102,102,0.35)",
+  },
+  subscribeBtn: {
+    flex: 1, height: 52, borderRadius: 16,
     backgroundColor: colors.gold,
-    borderRadius: 16,
-    paddingVertical: 15,
+    alignItems: "center", justifyContent: "center",
+    flexDirection: "row", gap: 10,
+    shadowColor: colors.gold, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35, shadowRadius: 20,
   },
-  ctaBtnText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#fff",
+  subscribeBtnText: {
+    fontFamily: "Sora_700Bold", fontSize: 15, color: "#fff", letterSpacing: 0.3,
   },
-  ctaSecondary: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "rgba(201,169,110,0.12)",
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    alignItems: "center",
-    justifyContent: "center",
+
+  /* Lightbox */
+  lightbox: { flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
+  lightboxCounter: {
+    position: "absolute", left: 20,
+    fontFamily: "Sora_600SemiBold", fontSize: 13, color: "rgba(255,255,255,0.6)",
   },
+  lightboxClose: {
+    position: "absolute", right: 20,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center", justifyContent: "center",
+  },
+  lightboxImgWrap: { flex: 1, alignItems: "center", justifyContent: "center", width: "100%" },
+  lightboxImg: { width: SCREEN_W * 0.9, height: SCREEN_H * 0.6 },
+  lightboxStrip: {
+    flexDirection: "row", justifyContent: "center", gap: 8,
+    paddingHorizontal: 20, paddingTop: 16,
+  },
+  lbThumb: {
+    width: 56, height: 44, borderRadius: 8, overflow: "hidden",
+    borderWidth: 2, borderColor: "transparent",
+  },
+  lbThumbActive: { borderColor: colors.gold },
+  lbThumbImg: { width: "100%", height: "100%" },
 });
