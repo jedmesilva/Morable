@@ -12,12 +12,59 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 
 const SCREEN_W = Dimensions.get("window").width;
 
 type PanelKey = "vida" | "historico" | "preferencias" | null;
+
+// ── CIRCULAR PROGRESS AVATAR ──────────────────────────────────────────────────
+function AvatarWithRing({ progress }: { progress: number }) {
+  const size = 96;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth * 2) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - progress / 100);
+
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        {/* Track */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {/* Progress */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={colors.gold}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          rotation="-90"
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>M</Text>
+      </View>
+      {/* Completion badge */}
+      <View style={styles.completionBadge}>
+        <Text style={styles.completionBadgeText}>{progress}%</Text>
+      </View>
+    </View>
+  );
+}
 
 // ── DETAIL PANEL ──────────────────────────────────────────────────────────────
 function DetailPanel({
@@ -52,10 +99,7 @@ function DetailPanel({
       <Animated.View
         style={[styles.panelRoot, { transform: [{ translateX: slideAnim }] }]}
       >
-        {/* Header */}
-        <View
-          style={[styles.panelHeader, { paddingTop: topPad + 12 }]}
-        >
+        <View style={[styles.panelHeader, { paddingTop: topPad + 12 }]}>
           <TouchableOpacity
             style={styles.panelBack}
             onPress={() => {
@@ -83,13 +127,7 @@ function DetailPanel({
 }
 
 // ── PANEL CONTENTS ────────────────────────────────────────────────────────────
-function DetailCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.detailCard}>
       <Text style={styles.detailCardTitle}>{title}</Text>
@@ -116,13 +154,11 @@ function VidaContent() {
         <DetailRow label="Trabalha de casa" val="3× por semana" />
         <DetailRow label="Rotina noturna" val="Dorme cedo" />
       </DetailCard>
-
       <DetailCard title="Cônjuge">
         <DetailRow label="Nome" val="Carlos Oliveira" />
         <DetailRow label="Nascimento" val="12 Mar 1988 · 37 anos" />
         <DetailRow label="Profissão" val="Engenheiro civil" />
       </DetailCard>
-
       <DetailCard title="Filhos · 1">
         <View style={styles.petCard}>
           <View style={styles.petAvatar}>
@@ -134,7 +170,6 @@ function VidaContent() {
           </View>
         </View>
       </DetailCard>
-
       <DetailCard title="Pets · 3 no total">
         {[
           { emoji: "🐕", name: "Bolinha", detail: "Golden Retriever · 3 anos" },
@@ -159,7 +194,6 @@ function VidaContent() {
 function HistoricoContent() {
   return (
     <>
-      {/* Mini metrics */}
       <View style={styles.histMetrics}>
         {[
           { val: "3", label: "Imóveis", color: colors.text },
@@ -172,33 +206,10 @@ function HistoricoContent() {
           </View>
         ))}
       </View>
-
-      {/* History items */}
       {[
-        {
-          name: "Apto 304 · Torre B",
-          loc: "Jardins, SP",
-          period: "Mar 2026 → atual",
-          dur: "Atual",
-          stars: 0,
-          current: true,
-        },
-        {
-          name: "Apto 201 · Torre A",
-          loc: "Vila Madalena, SP",
-          period: "Jun 2024 – Fev 2026",
-          dur: "20 meses",
-          stars: 5,
-          current: false,
-        },
-        {
-          name: "Studio 12 · Ed. Central",
-          loc: "Pinheiros, SP",
-          period: "Jan 2023 – Mai 2024",
-          dur: "16 meses",
-          stars: 4,
-          current: false,
-        },
+        { name: "Apto 304 · Torre B", loc: "Jardins, SP", period: "Mar 2026 → atual", dur: "Atual", stars: 0, current: true },
+        { name: "Apto 201 · Torre A", loc: "Vila Madalena, SP", period: "Jun 2024 – Fev 2026", dur: "20 meses", stars: 5, current: false },
+        { name: "Studio 12 · Ed. Central", loc: "Pinheiros, SP", period: "Jan 2023 – Mai 2024", dur: "16 meses", stars: 4, current: false },
       ].map((h, i) => (
         <View key={i} style={styles.histItem}>
           <View style={styles.histIcon}>
@@ -206,21 +217,14 @@ function HistoricoContent() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.histName}>{h.name}</Text>
-            <Text style={styles.histSub}>
-              {h.loc} · {h.period}
-            </Text>
+            <Text style={styles.histSub}>{h.loc} · {h.period}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.histDur}>{h.dur}</Text>
             {h.stars > 0 && (
               <View style={styles.histStars}>
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <Feather
-                    key={s}
-                    name="star"
-                    size={10}
-                    color={s <= h.stars ? colors.gold : "rgba(255,255,255,0.2)"}
-                  />
+                  <Feather key={s} name="star" size={10} color={s <= h.stars ? colors.gold : "rgba(255,255,255,0.2)"} />
                 ))}
               </View>
             )}
@@ -240,7 +244,6 @@ function PreferenciasContent() {
         <DetailRow label="Quartos" val="2+" />
         <DetailRow label="Orçamento" val="Até R$ 5.500/mês" />
       </DetailCard>
-
       <DetailCard title="Prioridades">
         {[
           { emoji: "🐾", label: "Aceita pets", rank: "#1" },
@@ -250,16 +253,11 @@ function PreferenciasContent() {
           { emoji: "💪", label: "Academia", rank: "#5" },
         ].map((p, i) => (
           <View key={i} style={styles.detailRow}>
-            <Text style={styles.detailRowLabel}>
-              {p.emoji}{"  "}{p.label}
-            </Text>
-            <Text style={[styles.detailRowVal, { color: colors.text3, fontSize: 12 }]}>
-              {p.rank}
-            </Text>
+            <Text style={styles.detailRowLabel}>{p.emoji}{"  "}{p.label}</Text>
+            <Text style={[styles.detailRowVal, { color: colors.text3, fontSize: 12 }]}>{p.rank}</Text>
           </View>
         ))}
       </DetailCard>
-
       <DetailCard title="Bairros favoritos">
         <View style={styles.prefNeighWrap}>
           {["Jardins", "Vila Madalena", "Pinheiros", "Itaim Bibi"].map((b, i) => (
@@ -295,15 +293,31 @@ export default function ProfileScreen() {
       >
         {/* ── HERO ── */}
         <View style={[styles.hero, { paddingTop: topPad + 16 }]}>
-          {/* Glow orb */}
           <View style={styles.heroGlow} pointerEvents="none" />
 
+          {/* Avatar row: ring + edit button side by side */}
           <View style={styles.heroTop}>
-            {/* Avatar */}
-            <View style={styles.avatarRing}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>M</Text>
-              </View>
+            <AvatarWithRing progress={profileComplete} />
+            <View style={styles.heroTopRight}>
+              <TouchableOpacity
+                style={styles.editProfileBtn}
+                activeOpacity={0.8}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              >
+                <Feather name="edit-2" size={14} color={colors.text2} />
+                <Text style={styles.editProfileBtnText}>Editar perfil</Text>
+              </TouchableOpacity>
+              {/* Completion hint */}
+              <TouchableOpacity
+                style={styles.completionHintRow}
+                activeOpacity={0.75}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              >
+                <Feather name="zap" size={11} color={colors.gold} />
+                <Text style={styles.completionHint}>
+                  Adicione foto para mais matches
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -317,64 +331,33 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Edit profile button */}
-          <TouchableOpacity
-            style={styles.editProfileBtn}
-            activeOpacity={0.8}
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-          >
-            <Feather name="edit-2" size={14} color={colors.text2} />
-            <Text style={styles.editProfileBtnText}>Editar perfil</Text>
-          </TouchableOpacity>
-
-          {/* Plan badge */}
-          <View style={styles.planBadge}>
-            <Feather name="star" size={12} color={colors.gold} />
-            <Text style={styles.planBadgeText}>Assinante HaaS · desde 2021</Text>
-          </View>
-
-          {/* Completion */}
-          <View style={styles.completionWrap}>
-            <View style={styles.completionHeader}>
-              <Text style={styles.completionLabel}>Completude do perfil</Text>
-              <Text style={styles.completionPct}>{profileComplete}%</Text>
-            </View>
-            <View style={styles.completionTrack}>
-              <View style={[styles.completionFill, { width: `${profileComplete}%` as any }]} />
-            </View>
-            <View style={styles.completionHintRow}>
-              <Feather name="zap" size={11} color={colors.gold} />
-              <Text style={styles.completionHint}>
-                Complete seu perfil para matches mais precisos
-              </Text>
-            </View>
-            <View style={styles.completionMissingWrap}>
-              <Text style={styles.completionMissingTitle}>O que falta:</Text>
-              {[
-                { icon: "camera", label: "Foto de perfil" },
-                { icon: "phone", label: "Telefone de contato" },
-                { icon: "briefcase", label: "Comprovante de renda" },
-              ].map((item, i) => (
-                <View key={i} style={styles.completionMissingItem}>
-                  <View style={styles.completionMissingDot} />
-                  <Feather name={item.icon as any} size={12} color={colors.text3} />
-                  <Text style={styles.completionMissingText}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
+          {/* Metrics strip */}
+          <View style={styles.metricsStrip}>
+            {[
+              { val: "3", label: "Imóveis", color: colors.text },
+              { val: "19m", label: "Média locação", color: colors.green },
+              { val: "4,7 ★", label: "Avaliação", color: colors.gold },
+            ].map((m, i, arr) => (
+              <View
+                key={i}
+                style={[
+                  styles.metricStripCell,
+                  i < arr.length - 1 && styles.metricStripCellBorder,
+                ]}
+              >
+                <Text style={[styles.metricStripVal, { color: m.color }]}>{m.val}</Text>
+                <Text style={styles.metricStripLabel}>{m.label}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
         {/* ── BLOCKS ── */}
         <View style={styles.sections}>
 
-          {/* MINHA VIDA */}
+          {/* SOBRE MIM */}
           <Text style={styles.sectionLabel}>Sobre mim</Text>
-          <TouchableOpacity
-            style={styles.blockCard}
-            activeOpacity={0.85}
-            onPress={() => openPanel("vida")}
-          >
+          <TouchableOpacity style={styles.blockCard} activeOpacity={0.85} onPress={() => openPanel("vida")}>
             <View style={styles.blockHeader}>
               <View style={[styles.blockIcon, { backgroundColor: colors.goldDim, borderColor: colors.goldBorder }]}>
                 <Feather name="users" size={18} color={colors.gold} />
@@ -392,12 +375,7 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* MINHAS PREFERÊNCIAS */}
-          <TouchableOpacity
-            style={styles.blockCard}
-            activeOpacity={0.85}
-            onPress={() => openPanel("preferencias")}
-          >
+          <TouchableOpacity style={styles.blockCard} activeOpacity={0.85} onPress={() => openPanel("preferencias")}>
             <View style={styles.blockHeader}>
               <View style={[styles.blockIcon, { backgroundColor: colors.greenDim, borderColor: "rgba(62,207,142,0.2)" }]}>
                 <Ionicons name="heart" size={18} color={colors.green} />
@@ -408,8 +386,6 @@ export default function ProfileScreen() {
               </View>
               <Feather name="chevron-right" size={16} color={colors.text3} />
             </View>
-
-            {/* 2×2 pref grid */}
             <View style={styles.prefGrid}>
               {[
                 { icon: <MaterialCommunityIcons name="paw" size={13} color={colors.green} />, label: "Pets OK", bg: colors.greenDim },
@@ -425,13 +401,9 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* MEU HISTÓRICO */}
+          {/* TRAJETÓRIA */}
           <Text style={[styles.sectionLabel, { marginTop: 4 }]}>Trajetória</Text>
-          <TouchableOpacity
-            style={styles.blockCard}
-            activeOpacity={0.85}
-            onPress={() => openPanel("historico")}
-          >
+          <TouchableOpacity style={styles.blockCard} activeOpacity={0.85} onPress={() => openPanel("historico")}>
             <View style={styles.blockHeader}>
               <View style={[styles.blockIcon, { backgroundColor: colors.blueDim, borderColor: "rgba(77,124,254,0.2)" }]}>
                 <Feather name="trending-up" size={18} color={colors.blue} />
@@ -442,8 +414,6 @@ export default function ProfileScreen() {
               </View>
               <Feather name="chevron-right" size={16} color={colors.text3} />
             </View>
-
-            {/* Metrics row */}
             <View style={styles.metricsRow}>
               <View style={styles.metricCell}>
                 <Text style={styles.metricVal}>3</Text>
@@ -458,8 +428,6 @@ export default function ProfileScreen() {
                 <Text style={styles.metricLabel}>Nota média</Text>
               </View>
             </View>
-
-            {/* Mini timeline */}
             <View style={styles.miniTimeline}>
               {[
                 { name: "Apto 304 · Torre B · atual", dur: "→", current: true },
@@ -467,14 +435,7 @@ export default function ProfileScreen() {
                 { name: "Studio 12 · Pinheiros", dur: "16m", current: false },
               ].map((t, i) => (
                 <View key={i} style={styles.miniTlItem}>
-                  <View
-                    style={[
-                      styles.miniTlDot,
-                      t.current
-                        ? { backgroundColor: colors.green }
-                        : { backgroundColor: "rgba(255,255,255,0.2)" },
-                    ]}
-                  />
+                  <View style={[styles.miniTlDot, { backgroundColor: t.current ? colors.green : "rgba(255,255,255,0.2)" }]} />
                   <Text style={styles.miniTlName}>{t.name}</Text>
                   <Text style={styles.miniTlDur}>{t.dur}</Text>
                 </View>
@@ -482,7 +443,7 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* PLANO / ASSINATURA ATUAL */}
+          {/* ASSINATURA ATUAL */}
           <Text style={[styles.sectionLabel, { marginTop: 4 }]}>Assinatura atual</Text>
           <TouchableOpacity
             style={styles.planCard}
@@ -493,7 +454,13 @@ export default function ProfileScreen() {
               <Ionicons name="business" size={22} color="#fff" />
             </View>
             <View style={styles.planInfo}>
-              <Text style={styles.planName}>Apto 304 · Torre B</Text>
+              <View style={styles.planTopRow}>
+                <Text style={styles.planName}>Apto 304 · Torre B</Text>
+                <View style={styles.haasBadge}>
+                  <Feather name="star" size={10} color={colors.gold} />
+                  <Text style={styles.haasBadgeText}>HaaS</Text>
+                </View>
+              </View>
               <Text style={styles.planDetail}>Jardins, São Paulo · R$ 4.500/mês</Text>
               <View style={styles.planRenew}>
                 <Feather name="calendar" size={10} color={colors.text3} />
@@ -503,24 +470,49 @@ export default function ProfileScreen() {
             <Feather name="chevron-right" size={16} color={colors.gold} />
           </TouchableOpacity>
 
+          {/* CONTA */}
+          <Text style={[styles.sectionLabel, { marginTop: 4 }]}>Conta</Text>
+          <View style={styles.accountCard}>
+            {[
+              { icon: "bell", label: "Notificações", sub: "Push, e-mail e SMS" },
+              { icon: "lock", label: "Privacidade", sub: "Dados e preferências" },
+              { icon: "help-circle", label: "Ajuda", sub: "Central de suporte" },
+            ].map((item, i, arr) => (
+              <TouchableOpacity
+                key={i}
+                style={[styles.accountRow, i < arr.length - 1 && styles.accountRowBorder]}
+                activeOpacity={0.75}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              >
+                <View style={styles.accountRowIcon}>
+                  <Feather name={item.icon as any} size={16} color={colors.text2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.accountRowLabel}>{item.label}</Text>
+                  <Text style={styles.accountRowSub}>{item.sub}</Text>
+                </View>
+                <Feather name="chevron-right" size={14} color={colors.text3} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* LOGOUT */}
           <TouchableOpacity
             style={styles.logoutBtn}
             activeOpacity={0.8}
             onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
           >
-            <Feather name="log-out" size={15} color="rgba(255,102,102,0.7)" />
+            <View style={styles.logoutIcon}>
+              <Feather name="log-out" size={16} color="rgba(255,102,102,0.8)" />
+            </View>
             <Text style={styles.logoutText}>Sair da conta</Text>
+            <Feather name="chevron-right" size={14} color="rgba(255,102,102,0.4)" />
           </TouchableOpacity>
+
         </View>
       </ScrollView>
 
-      {/* Detail panels */}
-      <DetailPanel
-        panelKey={activePanel}
-        onClose={() => setActivePanel(null)}
-        insets={insets}
-      />
+      <DetailPanel panelKey={activePanel} onClose={() => setActivePanel(null)} insets={insets} />
     </View>
   );
 }
@@ -534,7 +526,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: colors.bg,
     paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingBottom: 24,
     overflow: "hidden",
   },
   heroGlow: {
@@ -548,45 +540,78 @@ const styles = StyleSheet.create({
   },
   heroTop: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: 16,
     marginBottom: 20,
   },
-  avatarRing: { position: "relative" },
+  heroTopRight: {
+    flex: 1,
+    gap: 10,
+  },
+
+  // AVATAR
   avatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#2a4a7f",
-    borderWidth: 3,
-    borderColor: "rgba(201,169,110,0.35)",
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    fontSize: 30,
+    fontSize: 28,
     fontFamily: "Sora_700Bold",
     color: "#fff",
   },
+  completionBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.gold,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
+  completionBadgeText: {
+    fontSize: 9,
+    fontFamily: "Sora_700Bold",
+    color: colors.bg,
+  },
+
+  // EDIT BUTTON
   editProfileBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
     alignSelf: "flex-start",
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.13)",
-    marginBottom: 18,
   },
   editProfileBtnText: {
     fontSize: 13,
     fontFamily: "Sora_600SemiBold",
     color: colors.text2,
   },
-  identity: { marginBottom: 12 },
+  completionHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  completionHint: {
+    fontSize: 11,
+    color: colors.text3,
+    flex: 1,
+    flexWrap: "wrap",
+  },
+
+  // IDENTITY
+  identity: { marginBottom: 16 },
   userName: {
     fontSize: 24,
     fontFamily: "Sora_700Bold",
@@ -596,92 +621,48 @@ const styles = StyleSheet.create({
   userMeta: { flexDirection: "row", alignItems: "center", gap: 10 },
   userMetaText: { fontSize: 12, color: colors.text2 },
   metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.text3 },
-  planBadge: {
+
+  // METRICS STRIP
+  metricsStrip: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(201,169,110,0.14)",
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    marginBottom: 18,
-  },
-  planBadgeText: {
-    fontSize: 11,
-    fontFamily: "Sora_700Bold",
-    color: colors.gold,
-    letterSpacing: 0.8,
-  },
-  completionWrap: {
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
-    padding: 14,
-  },
-  completionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  completionLabel: { fontSize: 12, color: colors.text2 },
-  completionPct: { fontSize: 13, fontFamily: "Sora_700Bold", color: colors.gold },
-  completionTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: 18,
     overflow: "hidden",
-    marginBottom: 8,
   },
-  completionFill: {
-    height: "100%" as any,
-    borderRadius: 3,
-    backgroundColor: colors.gold,
+  metricStripCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
   },
-  completionHintRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  completionHint: { fontSize: 11, color: colors.text3 },
-  completionMissingWrap: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
-    gap: 8,
+  metricStripCellBorder: {
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
   },
-  completionMissingTitle: {
-    fontSize: 11,
-    fontWeight: "600" as const,
+  metricStripVal: {
+    fontSize: 17,
+    fontFamily: "Sora_700Bold",
+    color: colors.text,
+    marginBottom: 3,
+  },
+  metricStripLabel: {
+    fontSize: 9,
+    fontWeight: "500" as const,
     color: colors.text3,
     letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  completionMissingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  completionMissingDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.gold,
-  },
-  completionMissingText: {
-    fontSize: 12,
-    color: colors.text2,
+    textTransform: "uppercase" as const,
+    textAlign: "center" as const,
   },
 
   // SECTIONS
   sections: { padding: 20, gap: 12 },
   sectionLabel: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: "600" as const,
     color: colors.text3,
     letterSpacing: 1.4,
-    textTransform: "uppercase",
+    textTransform: "uppercase" as const,
     marginBottom: 4,
     paddingLeft: 2,
   },
@@ -727,14 +708,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  pillText: { fontSize: 11, fontWeight: "500", color: colors.text2 },
-  pillGold: {
-    backgroundColor: colors.goldDim,
-    borderColor: colors.goldBorder,
-  },
-  pillGoldText: { fontSize: 11, fontWeight: "500", color: colors.gold },
+  pillText: { fontSize: 11, fontWeight: "500" as const, color: colors.text2 },
+  pillGold: { backgroundColor: colors.goldDim, borderColor: colors.goldBorder },
+  pillGoldText: { fontSize: 11, fontWeight: "500" as const, color: colors.gold },
 
-  // METRICS
+  // METRICS (inside historico card)
   metricsRow: {
     flexDirection: "row",
     borderTopWidth: 1,
@@ -754,10 +732,10 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 9,
-    fontWeight: "500",
+    fontWeight: "500" as const,
     color: colors.text3,
     letterSpacing: 0.7,
-    textTransform: "uppercase",
+    textTransform: "uppercase" as const,
   },
 
   // MINI TIMELINE
@@ -770,7 +748,7 @@ const styles = StyleSheet.create({
   miniTlItem: { flexDirection: "row", alignItems: "center", gap: 10 },
   miniTlDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   miniTlName: { flex: 1, fontSize: 12, color: colors.text2 },
-  miniTlDur: { fontSize: 11, fontWeight: "500", color: colors.text3 },
+  miniTlDur: { fontSize: 11, fontWeight: "500" as const, color: colors.text3 },
 
   // PREF GRID
   prefGrid: {
@@ -817,25 +795,87 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   planInfo: { flex: 1 },
-  planName: { fontSize: 15, fontFamily: "Sora_700Bold", color: colors.gold, marginBottom: 3 },
+  planTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 3,
+  },
+  planName: { fontSize: 15, fontFamily: "Sora_700Bold", color: colors.gold },
+  haasBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(201,169,110,0.18)",
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  haasBadgeText: {
+    fontSize: 9,
+    fontFamily: "Sora_700Bold",
+    color: colors.gold,
+    letterSpacing: 0.5,
+  },
   planDetail: { fontSize: 12, color: colors.text2 },
   planRenew: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   planRenewText: { fontSize: 10, color: colors.text3 },
+
+  // ACCOUNT CARD
+  accountCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  accountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+  },
+  accountRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  accountRowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accountRowLabel: { fontSize: 14, fontFamily: "Sora_600SemiBold", color: colors.text, marginBottom: 1 },
+  accountRowSub: { fontSize: 11, color: colors.text3 },
 
   // LOGOUT
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,102,102,0.06)",
+    gap: 12,
+    padding: 16,
+    backgroundColor: "rgba(255,102,102,0.05)",
     borderWidth: 1,
     borderColor: "rgba(255,102,102,0.14)",
-    marginTop: 4,
+    borderRadius: 20,
   },
-  logoutText: { fontSize: 13, fontWeight: "500", color: "rgba(255,102,102,0.7)" },
+  logoutIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,102,102,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,102,102,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoutText: { flex: 1, fontSize: 14, fontFamily: "Sora_600SemiBold", color: "rgba(255,102,102,0.8)" },
 
   // DETAIL PANEL
   panelRoot: {
@@ -877,7 +917,7 @@ const styles = StyleSheet.create({
     fontFamily: "Sora_600SemiBold",
     color: colors.text3,
     letterSpacing: 1,
-    textTransform: "uppercase",
+    textTransform: "uppercase" as const,
     marginBottom: 14,
   },
   detailRow: {
@@ -915,11 +955,7 @@ const styles = StyleSheet.create({
   petDetail: { fontSize: 12, color: colors.text2 },
 
   // HISTORY (panel)
-  histMetrics: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 4,
-  },
+  histMetrics: { flexDirection: "row", gap: 8, marginBottom: 4 },
   histMetricCell: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -932,11 +968,11 @@ const styles = StyleSheet.create({
   histMetricVal: { fontSize: 18, fontFamily: "Sora_700Bold", color: colors.text, marginBottom: 3 },
   histMetricLabel: {
     fontSize: 9,
-    fontWeight: "500",
+    fontWeight: "500" as const,
     color: colors.text3,
     letterSpacing: 0.7,
-    textTransform: "uppercase",
-    textAlign: "center",
+    textTransform: "uppercase" as const,
+    textAlign: "center" as const,
   },
   histItem: {
     backgroundColor: "#1a2230",
@@ -960,8 +996,8 @@ const styles = StyleSheet.create({
   },
   histName: { fontSize: 14, fontFamily: "Sora_600SemiBold", color: colors.text, marginBottom: 2 },
   histSub: { fontSize: 11, color: colors.text2 },
-  histDur: { fontSize: 13, fontFamily: "Sora_600SemiBold", color: colors.text3, textAlign: "right" },
-  histStars: { flexDirection: "row", gap: 2, marginTop: 3, justifyContent: "flex-end" },
+  histDur: { fontSize: 13, fontFamily: "Sora_600SemiBold", color: colors.text3, textAlign: "right" as const },
+  histStars: { flexDirection: "row", gap: 2, marginTop: 3, justifyContent: "flex-end" as const },
 
   // PREFERENCES (panel)
   prefNeighWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingTop: 4 },
@@ -976,5 +1012,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(77,124,254,0.22)",
   },
-  pillBlueText: { fontSize: 11, fontWeight: "500", color: colors.blue },
+  pillBlueText: { fontSize: 11, fontWeight: "500" as const, color: colors.blue },
 });
