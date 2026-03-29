@@ -305,7 +305,7 @@ export default function ActionsScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.bg },
   header: {
-    backgroundColor: colors.headerGrad1,
+    backgroundColor: colors.bg,
     paddingHorizontal: 20,
     paddingBottom: 22,
   },

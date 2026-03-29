@@ -204,7 +204,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.bg },
   hero: {
-    backgroundColor: colors.headerGrad1,
+    backgroundColor: colors.bg,
     paddingHorizontal: 22,
     paddingBottom: 26,
   },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: colors.gold,
     borderWidth: 2,
-    borderColor: colors.headerGrad1,
+    borderColor: colors.bg,
     alignItems: "center",
     justifyContent: "center",
   },
