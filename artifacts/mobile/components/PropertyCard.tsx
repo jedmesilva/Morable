@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -101,6 +101,10 @@ export function PropertyCard({ property }: { property: Property }) {
             </View>
             <View style={styles.tag}>
               <Text style={styles.tagText}>{property.type.toUpperCase()}</Text>
+            </View>
+            <View style={styles.tagDistance}>
+              <MaterialIcons name="navigation" size={10} color="rgba(255,255,255,0.7)" style={{ transform: [{ rotate: "45deg" }] }} />
+              <Text style={styles.tagText}>{property.distance}</Text>
             </View>
           </View>
 
@@ -211,7 +215,7 @@ const styles = StyleSheet.create({
     padding: 14,
     paddingBottom: 16,
   },
-  tagRow: { flexDirection: "row", gap: 7, marginBottom: 8 },
+  tagRow: { flexDirection: "row", gap: 7, marginBottom: 8, flexWrap: "wrap" },
   tag: {
     backgroundColor: "rgba(0,0,0,0.4)",
     borderRadius: 20,
@@ -231,6 +235,17 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 10, fontWeight: "600" as const, color: "rgba(255,255,255,0.85)" },
   tagTextAvailable: { color: colors.green },
   tagTextUnavailable: { color: colors.red },
+  tagDistance: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 20,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",

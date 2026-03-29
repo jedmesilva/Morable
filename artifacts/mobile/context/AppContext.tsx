@@ -20,6 +20,7 @@ interface Property {
   wifi: boolean;
   security: boolean;
   furnished: boolean;
+  distance: string;
 }
 
 interface AppContextType {
@@ -57,6 +58,7 @@ export const properties: Property[] = [
     wifi: true,
     security: true,
     furnished: true,
+    distance: "0,8 km",
   },
   {
     id: "2",
@@ -78,6 +80,7 @@ export const properties: Property[] = [
     wifi: true,
     security: true,
     furnished: true,
+    distance: "2,3 km",
   },
   {
     id: "3",
@@ -99,6 +102,7 @@ export const properties: Property[] = [
     wifi: true,
     security: true,
     furnished: true,
+    distance: "1,1 km",
   },
 ];
 
