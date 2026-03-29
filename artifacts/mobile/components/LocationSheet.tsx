@@ -39,7 +39,6 @@ const SUGGESTIONS = [
   "Consolação, São Paulo, SP",
   "Lourdes, Belo Horizonte, MG",
   "Savassi, Belo Horizonte, MG",
-  "Miramar, Porto Alegre, RS",
   "Moinhos de Vento, Porto Alegre, RS",
   "Batel, Curitiba, PR",
   "Água Verde, Curitiba, PR",
@@ -54,16 +53,15 @@ interface LocationSheetProps {
 
 export function LocationSheet({
   visible,
-  currentLocation,
   onClose,
   onConfirm,
 }: LocationSheetProps) {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(600)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const inputRef = useRef<TextInput>(null);
 
   const [query, setQuery] = useState("");
-  const [usingCurrent, setUsingCurrent] = useState(false);
 
   const filtered =
     query.trim().length >= 2
@@ -75,7 +73,6 @@ export function LocationSheet({
   useEffect(() => {
     if (visible) {
       setQuery("");
-      setUsingCurrent(false);
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
@@ -88,8 +85,11 @@ export function LocationSheet({
           duration: 200,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        setTimeout(() => inputRef.current?.focus(), 100);
+      });
     } else {
+      Keyboard.dismiss();
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 600,
@@ -114,12 +114,9 @@ export function LocationSheet({
 
   const handleCurrentLocation = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setUsingCurrent(true);
-    setQuery("Localização atual");
-    setTimeout(() => {
-      onConfirm("Localização atual");
-      onClose();
-    }, 600);
+    Keyboard.dismiss();
+    onConfirm("Localização atual");
+    onClose();
   };
 
   const handleConfirmManual = () => {
@@ -153,7 +150,7 @@ export function LocationSheet({
         <Animated.View
           style={[
             styles.sheet,
-            { paddingBottom: insets.bottom + 16 },
+            { paddingBottom: insets.bottom + 20 },
             { transform: [{ translateY: slideAnim }] },
           ]}
         >
@@ -165,7 +162,7 @@ export function LocationSheet({
             <View>
               <Text style={styles.headerTitle}>Definir localização</Text>
               <Text style={styles.headerSub}>
-                Imóveis e distâncias serão calculados a partir daqui
+                Distâncias serão calculadas a partir daqui
               </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -173,43 +170,13 @@ export function LocationSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Current location button */}
-          <TouchableOpacity
-            style={[styles.currentLocBtn, usingCurrent && styles.currentLocBtnActive]}
-            onPress={handleCurrentLocation}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.currentLocIcon, usingCurrent && styles.currentLocIconActive]}>
-              <MaterialIcons
-                name="my-location"
-                size={16}
-                color={usingCurrent ? "#fff" : colors.blue}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.currentLocLabel, usingCurrent && { color: colors.blue }]}>
-                {usingCurrent ? "Usando localização atual..." : "Usar minha localização atual"}
-              </Text>
-              <Text style={styles.currentLocSub}>GPS · Precisão de bairro</Text>
-            </View>
-            {usingCurrent && (
-              <Feather name="check" size={16} color={colors.blue} />
-            )}
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou digite o endereço</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Input */}
+          {/* Single input field with "Minha localização" inside */}
           <View style={styles.inputWrap}>
-            <Feather name="map-pin" size={16} color={colors.text3} />
+            <Feather name="search" size={16} color={colors.text3} />
             <TextInput
+              ref={inputRef}
               value={query}
-              onChangeText={(t) => { setQuery(t); setUsingCurrent(false); }}
+              onChangeText={setQuery}
               placeholder="Bairro, cidade ou endereço..."
               placeholderTextColor={colors.text3}
               style={styles.input}
@@ -217,12 +184,21 @@ export function LocationSheet({
               returnKeyType="done"
               onSubmitEditing={handleConfirmManual}
             />
-            {query.length > 0 && (
+            {query.length > 0 ? (
               <TouchableOpacity
                 onPress={() => setQuery("")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Feather name="x" size={15} color={colors.text3} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.myLocationBtn}
+                onPress={handleCurrentLocation}
+                activeOpacity={0.75}
+              >
+                <MaterialIcons name="my-location" size={13} color={colors.blue} />
+                <Text style={styles.myLocationText}>Minha localização</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -237,7 +213,10 @@ export function LocationSheet({
               {filtered.map((s, i) => (
                 <TouchableOpacity
                   key={i}
-                  style={[styles.suggestionItem, i < filtered.length - 1 && styles.suggestionItemBorder]}
+                  style={[
+                    styles.suggestionItem,
+                    i < filtered.length - 1 && styles.suggestionItemBorder,
+                  ]}
                   onPress={() => handleSelectSuggestion(s)}
                   activeOpacity={0.7}
                 >
@@ -251,9 +230,13 @@ export function LocationSheet({
             </ScrollView>
           )}
 
-          {/* Confirm button — only show when there's typed text and no suggestion was picked */}
-          {query.trim().length > 0 && filtered.length === 0 && !usingCurrent && (
-            <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirmManual} activeOpacity={0.85}>
+          {/* Confirm button when query doesn't match any suggestion */}
+          {query.trim().length > 0 && filtered.length === 0 && (
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={handleConfirmManual}
+              activeOpacity={0.85}
+            >
               <Feather name="check" size={16} color="#fff" />
               <Text style={styles.confirmBtnText}>Confirmar "{query.trim()}"</Text>
             </TouchableOpacity>
@@ -316,57 +299,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  currentLocBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: colors.blueDim,
-    borderWidth: 1,
-    borderColor: "rgba(99,140,255,0.2)",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 20,
-  },
-  currentLocBtnActive: {
-    borderColor: "rgba(99,140,255,0.45)",
-    backgroundColor: "rgba(99,140,255,0.12)",
-  },
-  currentLocIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "rgba(99,140,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  currentLocIconActive: {
-    backgroundColor: colors.blue,
-  },
-  currentLocLabel: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-    color: colors.text,
-    marginBottom: 2,
-  },
-  currentLocSub: {
-    fontSize: 11,
-    color: colors.text3,
-  },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontSize: 11,
-    color: colors.text3,
-  },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -375,7 +307,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
-    paddingVertical: 13,
+    paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: 12,
   },
@@ -385,13 +317,29 @@ const styles = StyleSheet.create({
     color: colors.text,
     padding: 0,
   },
+  myLocationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: colors.blueDim,
+    borderWidth: 1,
+    borderColor: "rgba(99,140,255,0.25)",
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  myLocationText: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: colors.blue,
+  },
   suggestions: {
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
     marginBottom: 12,
-    maxHeight: 240,
+    maxHeight: 260,
   },
   suggestionItem: {
     flexDirection: "row",
