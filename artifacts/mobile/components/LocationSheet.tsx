@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
-  KeyboardAvoidingView,
+  KeyboardEvent,
   Modal,
   Platform,
   ScrollView,
@@ -67,10 +67,10 @@ export function LocationSheet({
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState("");
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const translateY = useSharedValue(600);
   const backdropOpacity = useSharedValue(0);
-  const dragOffset = useSharedValue(0);
 
   const filtered =
     query.trim().length >= 2
@@ -79,16 +79,30 @@ export function LocationSheet({
         ).slice(0, 6)
       : [];
 
+  // Track keyboard height to lift the sheet
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const onShow = (e: KeyboardEvent) => setKeyboardOffset(e.endCoordinates.height);
+    const onHide = () => setKeyboardOffset(0);
+
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   const dismiss = () => {
     Keyboard.dismiss();
-    translateY.value = withTiming(600, { duration: 240 });
-    backdropOpacity.value = withTiming(0, { duration: 200 });
-    setTimeout(onClose, 240);
+    translateY.value = withTiming(600, { duration: 260 });
+    backdropOpacity.value = withTiming(0, { duration: 220 });
+    setTimeout(onClose, 260);
   };
 
   useEffect(() => {
     if (visible) {
       setQuery("");
+      setKeyboardOffset(0);
       translateY.value = withSpring(0, { damping: 32, stiffness: 260, mass: 1 });
       backdropOpacity.value = withTiming(1, { duration: 280 });
       setTimeout(() => inputRef.current?.focus(), 360);
@@ -101,7 +115,6 @@ export function LocationSheet({
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
       if (e.translationY > 0) {
-        dragOffset.value = e.translationY;
         translateY.value = e.translationY;
         backdropOpacity.value = Math.max(0, 1 - e.translationY / 300);
       }
@@ -112,7 +125,6 @@ export function LocationSheet({
       } else {
         translateY.value = withSpring(0, { damping: 32, stiffness: 260, mass: 1 });
         backdropOpacity.value = withTiming(1, { duration: 200 });
-        dragOffset.value = 0;
       }
     });
 
@@ -154,133 +166,127 @@ export function LocationSheet({
       statusBarTranslucent
       onRequestClose={dismiss}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {/* Backdrop */}
+      <Animated.View style={[styles.backdrop, backdropStyle]}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={dismiss} activeOpacity={1} />
+      </Animated.View>
+
+      {/* Sheet — absolutely pinned to bottom, lifts with keyboard */}
+      <Animated.View
+        style={[
+          styles.sheet,
+          { bottom: keyboardOffset },
+          sheetStyle,
+        ]}
       >
-        {/* Backdrop */}
-        <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={dismiss} activeOpacity={1} />
-        </Animated.View>
-
-        {/* Sheet */}
-        <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
-        <View
-          style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}
-        >
-          {/* Draggable handle area */}
-          <GestureDetector gesture={panGesture}>
-            <View style={styles.dragArea}>
-              <View style={styles.handle} />
-            </View>
-          </GestureDetector>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.headerTitle}>Definir localização</Text>
-              <Text style={styles.headerSub}>
-                Distâncias serão calculadas a partir daqui
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>
-              <Feather name="x" size={16} color={colors.text2} />
-            </TouchableOpacity>
+        {/* Draggable handle */}
+        <GestureDetector gesture={panGesture}>
+          <View style={styles.dragArea}>
+            <View style={styles.handle} />
           </View>
+        </GestureDetector>
 
-          {/* Input with "Minha localização" button inside */}
-          <View style={styles.inputWrap}>
-            <Feather name="search" size={16} color={colors.text3} />
-            <TextInput
-              ref={inputRef}
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Bairro, cidade ou endereço..."
-              placeholderTextColor={colors.text3}
-              style={styles.input}
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={handleConfirmManual}
-            />
-            {query.length > 0 ? (
-              <TouchableOpacity
-                onPress={() => setQuery("")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="x" size={15} color={colors.text3} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.myLocationBtn}
-                onPress={handleCurrentLocation}
-                activeOpacity={0.75}
-              >
-                <MaterialIcons name="my-location" size={13} color={colors.blue} />
-                <Text style={styles.myLocationText}>Minha localização</Text>
-              </TouchableOpacity>
-            )}
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Definir localização</Text>
+            <Text style={styles.headerSub}>
+              Distâncias serão calculadas a partir daqui
+            </Text>
           </View>
+          <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>
+            <Feather name="x" size={16} color={colors.text2} />
+          </TouchableOpacity>
+        </View>
 
-          {/* Suggestions */}
-          {filtered.length > 0 && (
-            <ScrollView
-              style={styles.suggestions}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {filtered.map((s, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[
-                    styles.suggestionItem,
-                    i < filtered.length - 1 && styles.suggestionItemBorder,
-                  ]}
-                  onPress={() => handleSelectSuggestion(s)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.suggestionIcon}>
-                    <Feather name="map-pin" size={13} color={colors.text3} />
-                  </View>
-                  <Text style={styles.suggestionText} numberOfLines={1}>{s}</Text>
-                  <Feather name="arrow-up-left" size={13} color={colors.text3} />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-
-          {/* Confirm when no suggestion matches */}
-          {query.trim().length > 0 && filtered.length === 0 && (
+        {/* Input with "Minha localização" inside */}
+        <View style={styles.inputWrap}>
+          <Feather name="search" size={16} color={colors.text3} />
+          <TextInput
+            ref={inputRef}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Bairro, cidade ou endereço..."
+            placeholderTextColor={colors.text3}
+            style={styles.input}
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleConfirmManual}
+          />
+          {query.length > 0 ? (
             <TouchableOpacity
-              style={styles.confirmBtn}
-              onPress={handleConfirmManual}
-              activeOpacity={0.85}
+              onPress={() => setQuery("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather name="check" size={16} color="#fff" />
-              <Text style={styles.confirmBtnText}>Confirmar "{query.trim()}"</Text>
+              <Feather name="x" size={15} color={colors.text3} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.myLocationBtn}
+              onPress={handleCurrentLocation}
+              activeOpacity={0.75}
+            >
+              <MaterialIcons name="my-location" size={13} color={colors.blue} />
+              <Text style={styles.myLocationText}>Minha localização</Text>
             </TouchableOpacity>
           )}
         </View>
-        {/* Bottom fill — covers the gap between the sheet and the screen edge */}
-        <View style={[styles.bottomFill, { height: insets.bottom + 40 }]} />
-        </Animated.View>
-      </KeyboardAvoidingView>
+
+        {/* Suggestions */}
+        {filtered.length > 0 && (
+          <ScrollView
+            style={styles.suggestions}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {filtered.map((s, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.suggestionItem,
+                  i < filtered.length - 1 && styles.suggestionItemBorder,
+                ]}
+                onPress={() => handleSelectSuggestion(s)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.suggestionIcon}>
+                  <Feather name="map-pin" size={13} color={colors.text3} />
+                </View>
+                <Text style={styles.suggestionText} numberOfLines={1}>{s}</Text>
+                <Feather name="arrow-up-left" size={13} color={colors.text3} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Confirm when no suggestion matches */}
+        {query.trim().length > 0 && filtered.length === 0 && (
+          <TouchableOpacity
+            style={styles.confirmBtn}
+            onPress={handleConfirmManual}
+            activeOpacity={0.85}
+          >
+            <Feather name="check" size={16} color="#fff" />
+            <Text style={styles.confirmBtnText}>Confirmar "{query.trim()}"</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Safe area spacer */}
+        <View style={{ height: keyboardOffset > 0 ? 8 : insets.bottom + 8 }} />
+      </Animated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardView: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
   },
-  sheetWrapper: {
-    maxHeight: "85%",
-  },
   sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
     backgroundColor: "#14181f",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -289,9 +295,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 20,
-  },
-  bottomFill: {
-    backgroundColor: "#14181f",
+    maxHeight: "85%",
   },
   dragArea: {
     alignItems: "center",
