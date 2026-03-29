@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Slider from "@react-native-community/slider";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -18,16 +19,9 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 
-export type DistanceOption = 2 | 5 | 10 | 20 | null;
+export type DistanceOption = number | null;
 
-const DISTANCE_OPTIONS: { label: string; value: DistanceOption }[] = [
-  { label: "2 km", value: 2 },
-  { label: "5 km", value: 5 },
-  { label: "10 km", value: 10 },
-  { label: "20 km", value: 20 },
-  { label: "Qualquer", value: null },
-];
-
+const PRESETS = [2, 5, 10, 20, 50];
 const DISMISS_THRESHOLD = 80;
 
 interface FilterSheetProps {
@@ -99,6 +93,7 @@ export function FilterSheet({ visible, maxDistance, onClose, onApply }: FilterSh
 
   const hasChanges = selectedDistance !== maxDistance;
   const hasActiveFilters = selectedDistance !== null;
+  const sliderValue = selectedDistance ?? 0;
 
   if (!visible) return null;
 
@@ -139,29 +134,54 @@ export function FilterSheet({ visible, maxDistance, onClose, onApply }: FilterSh
           <View style={styles.sectionHeader}>
             <Feather name="map-pin" size={14} color={colors.gold} />
             <Text style={styles.sectionTitle}>Distância máxima</Text>
+            <View style={styles.distanceBadge}>
+              <Text style={styles.distanceBadgeText}>
+                {selectedDistance ? `${selectedDistance} km` : "Qualquer"}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.sectionSub}>
-            A partir da localização selecionada
-          </Text>
-          <View style={styles.optionsGrid}>
-            {DISTANCE_OPTIONS.map((opt) => {
-              const isSelected = selectedDistance === opt.value;
-              return (
-                <TouchableOpacity
-                  key={String(opt.value)}
-                  style={[styles.optionChip, isSelected && styles.optionChipActive]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedDistance(opt.value);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <Text style={styles.sectionSub}>A partir da localização selecionada</Text>
+
+          {/* Slider */}
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={sliderValue}
+            onValueChange={(val) => setSelectedDistance(val === 0 ? null : val)}
+            minimumTrackTintColor={colors.gold}
+            maximumTrackTintColor="rgba(255,255,255,0.12)"
+            thumbTintColor={colors.gold}
+          />
+          <View style={styles.sliderLabels}>
+            <Text style={styles.sliderLabel}>Qualquer</Text>
+            <Text style={styles.sliderLabel}>100 km</Text>
+          </View>
+
+          {/* Preset quick-select */}
+          <View style={styles.presetsRow}>
+            <Text style={styles.presetsLabel}>Sugestões:</Text>
+            <View style={styles.presets}>
+              {PRESETS.map((km) => {
+                const isSelected = selectedDistance === km;
+                return (
+                  <TouchableOpacity
+                    key={km}
+                    style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedDistance(isSelected ? null : km);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.presetText, isSelected && styles.presetTextActive]}>
+                      {km} km
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -263,6 +283,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600" as const,
     color: colors.text,
+    flex: 1,
+  },
+  distanceBadge: {
+    backgroundColor: "rgba(201,169,110,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(201,169,110,0.35)",
+    borderRadius: 20,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+  },
+  distanceBadgeText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: colors.gold,
   },
   sectionSub: {
     fontSize: 12,
@@ -270,29 +304,52 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginLeft: 22,
   },
-  optionsGrid: {
+  slider: {
+    width: "100%",
+    height: 40,
+    marginHorizontal: -4,
+  },
+  sliderLabels: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: -4,
+    marginBottom: 20,
+  },
+  sliderLabel: {
+    fontSize: 11,
+    color: colors.text3,
+  },
+  presetsRow: {
     gap: 10,
   },
-  optionChip: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 22,
+  presetsLabel: {
+    fontSize: 12,
+    color: colors.text3,
+    fontWeight: "500" as const,
+  },
+  presets: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  presetChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: "rgba(255,255,255,0.04)",
   },
-  optionChipActive: {
+  presetChipActive: {
     backgroundColor: "rgba(201,169,110,0.14)",
     borderColor: "rgba(201,169,110,0.45)",
   },
-  optionText: {
+  presetText: {
     fontSize: 13,
     fontWeight: "500" as const,
     color: colors.text3,
   },
-  optionTextActive: {
+  presetTextActive: {
     color: colors.gold,
     fontWeight: "600" as const,
   },
