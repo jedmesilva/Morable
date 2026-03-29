@@ -13,15 +13,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 import { PropertyCard } from "@/components/PropertyCard";
 import { properties } from "@/context/AppContext";
+import type { DistanceOption } from "@/components/FilterSheet";
 
-const chips = ["Todos", "Studio", "1 quarto", "2 quartos", "3+ quartos"];
+const TYPE_CHIPS = ["Todos", "Studio", "1 quarto", "2 quartos", "3+ quartos"];
+
+function parseDistance(str: string): number {
+  return parseFloat(str.replace(",", ".").replace(" km", ""));
+}
 
 interface DiscoverScreenProps {
   location: string;
+  maxDistance: DistanceOption;
   onOpenLocationSheet: () => void;
+  onOpenFilterSheet: () => void;
+  onClearDistance: () => void;
 }
 
-export default function DiscoverScreen({ location, onOpenLocationSheet }: DiscoverScreenProps) {
+export default function DiscoverScreen({
+  location,
+  maxDistance,
+  onOpenLocationSheet,
+  onOpenFilterSheet,
+  onClearDistance,
+}: DiscoverScreenProps) {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [activeChip, setActiveChip] = useState(0);
@@ -38,8 +52,12 @@ export default function DiscoverScreen({ location, onOpenLocationSheet }: Discov
       search.length === 0 ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.location.toLowerCase().includes(search.toLowerCase());
-    return matchChip && matchSearch;
+    const matchDistance =
+      maxDistance === null || parseDistance(p.distance) <= maxDistance;
+    return matchChip && matchSearch && matchDistance;
   });
+
+  const hasActiveFilters = maxDistance !== null;
 
   return (
     <View style={{ flex: 1 }}>
@@ -90,19 +108,37 @@ export default function DiscoverScreen({ location, onOpenLocationSheet }: Discov
                 </TouchableOpacity>
               )}
             </View>
-            <TouchableOpacity style={styles.filterBtn}>
-              <Feather name="sliders" size={18} color={colors.gold} />
+            <TouchableOpacity
+              style={[styles.filterBtn, hasActiveFilters && styles.filterBtnActive]}
+              onPress={onOpenFilterSheet}
+            >
+              <Feather name="sliders" size={18} color={hasActiveFilters ? colors.gold : colors.gold} />
+              {hasActiveFilters && <View style={styles.filterBadge} />}
             </TouchableOpacity>
           </View>
 
-          {/* Chips */}
+          {/* Chips row */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.chips}
             contentContainerStyle={{ gap: 8, paddingRight: 4 }}
           >
-            {chips.map((c, i) => (
+            {/* Active distance chip */}
+            {maxDistance !== null && (
+              <TouchableOpacity
+                style={styles.distanceChip}
+                onPress={onClearDistance}
+                activeOpacity={0.75}
+              >
+                <Feather name="map-pin" size={11} color={colors.blue} />
+                <Text style={styles.distanceChipText}>≤ {maxDistance} km</Text>
+                <Feather name="x" size={11} color={colors.blue} />
+              </TouchableOpacity>
+            )}
+
+            {/* Type chips */}
+            {TYPE_CHIPS.map((c, i) => (
               <TouchableOpacity
                 key={c}
                 style={[styles.chip, activeChip === i && styles.chipActive]}
@@ -124,7 +160,7 @@ export default function DiscoverScreen({ location, onOpenLocationSheet }: Discov
                 <Text style={styles.emptyText}>Tente ajustar os filtros de busca</Text>
                 <TouchableOpacity
                   style={styles.clearFiltersBtn}
-                  onPress={() => { setSearch(""); setActiveChip(0); }}
+                  onPress={() => { setSearch(""); setActiveChip(0); onClearDistance(); }}
                 >
                   <Feather name="x-circle" size={14} color={colors.gold} />
                   <Text style={styles.clearFiltersText}>Limpar filtros</Text>
@@ -217,6 +253,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  filterBtnActive: {
+    backgroundColor: "rgba(201,169,110,0.18)",
+    borderColor: "rgba(201,169,110,0.50)",
+  },
+  filterBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.gold,
+    borderWidth: 1,
+    borderColor: colors.bg,
+  },
   chips: { marginBottom: 20 },
   chip: {
     paddingVertical: 7,
@@ -236,6 +287,22 @@ const styles = StyleSheet.create({
     color: colors.text3,
   },
   chipTextActive: { color: colors.gold },
+  distanceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(99,140,255,0.40)",
+    backgroundColor: colors.blueDim,
+  },
+  distanceChipText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: colors.blue,
+  },
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
