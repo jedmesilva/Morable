@@ -13,6 +13,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as NavigationBar from "expo-navigation-bar";
+import { Platform } from "react-native";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -21,6 +23,14 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
 import { useSystemBars } from "@/hooks/useSystemBars";
+
+// Configure the Android navigation bar as early as possible (module level),
+// before any component renders, to avoid the white flash on startup.
+if (Platform.OS === "android") {
+  NavigationBar.setPositionAsync("absolute").catch(() => {});
+  NavigationBar.setBackgroundColorAsync("#0d1117").catch(() => {});
+  NavigationBar.setButtonStyleAsync("light").catch(() => {});
+}
 
 SplashScreen.preventAutoHideAsync();
 
