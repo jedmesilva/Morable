@@ -209,7 +209,11 @@ const badgeBorderMap: Record<string, string> = {
   gold: colors.goldBorder,
 };
 
-export default function ActionsScreen() {
+interface ActionsScreenProps {
+  onBack?: () => void;
+}
+
+export default function ActionsScreen({ onBack }: ActionsScreenProps) {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -221,6 +225,11 @@ export default function ActionsScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
+        {onBack && (
+          <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+            <Feather name="arrow-left" size={20} color={colors.text} />
+          </TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Todas as ações</Text>
         <Text style={styles.headerSub}>O que você precisa fazer hoje?</Text>
       </View>
@@ -316,6 +325,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerSub: { fontSize: 13, color: colors.text3 },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
   content: { padding: 20 },
   groupLabel: {
     flexDirection: "row",

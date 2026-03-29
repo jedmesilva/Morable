@@ -50,7 +50,11 @@ const iconBgMap: Record<string, string> = {
   amber: colors.amberDim,
 };
 
-export default function HomeScreen() {
+interface HomeScreenProps {
+  onOpenActions?: () => void;
+}
+
+export default function HomeScreen({ onOpenActions }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [balanceHidden, setBalanceHidden] = useState(false);
@@ -142,12 +146,20 @@ export default function HomeScreen() {
         <Text style={styles.sectionLabel}>AÇÕES RÁPIDAS</Text>
         <View style={styles.actionsGrid}>
           {[
-            { icon: "credit-card" as const, label: "Fatura" },
-            { icon: "tool" as const, label: "Chamados" },
-            { icon: "headphones" as const, label: "Suporte" },
-            { icon: "grid" as const, label: "Mais" },
+            { icon: "credit-card" as const, label: "Fatura", onPress: undefined },
+            { icon: "tool" as const, label: "Chamados", onPress: undefined },
+            { icon: "headphones" as const, label: "Suporte", onPress: undefined },
+            { icon: "grid" as const, label: "Mais", onPress: onOpenActions },
           ].map((a) => (
-            <TouchableOpacity key={a.label} style={styles.actionItem} activeOpacity={0.7}>
+            <TouchableOpacity
+              key={a.label}
+              style={styles.actionItem}
+              activeOpacity={0.7}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                a.onPress?.();
+              }}
+            >
               <View style={[styles.actionIcon, a.label === "Mais" && styles.actionIconMore]}>
                 <Feather
                   name={a.icon}

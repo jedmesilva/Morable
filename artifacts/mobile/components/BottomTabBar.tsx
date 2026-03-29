@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 
-export type TabName = "home" | "discover" | "actions" | "profile";
+export type TabName = "home" | "discover" | "profile";
 
 interface BottomTabBarProps {
   activeTab: TabName;
@@ -21,7 +21,6 @@ interface BottomTabBarProps {
 const tabs: { name: TabName; icon: string; label: string }[] = [
   { name: "home", icon: "home", label: "Início" },
   { name: "discover", icon: "search", label: "Descobrir" },
-  { name: "actions", icon: "grid", label: "Ações" },
   { name: "profile", icon: "user", label: "Perfil" },
 ];
 

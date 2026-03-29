@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, StyleSheet } from "react-native";
 import { BottomTabBar, type TabName } from "@/components/BottomTabBar";
 import colors from "@/constants/colors";
 import HomeScreen from "@/screens/HomeScreen";
@@ -10,13 +9,20 @@ import ProfileScreen from "@/screens/ProfileScreen";
 
 export default function MainScreen() {
   const [activeTab, setActiveTab] = useState<TabName>("home");
-  const insets = useSafeAreaInsets();
+  const [showActions, setShowActions] = useState(false);
+
+  if (showActions) {
+    return (
+      <View style={styles.root}>
+        <ActionsScreen onBack={() => setShowActions(false)} />
+      </View>
+    );
+  }
 
   const renderScreen = () => {
     switch (activeTab) {
-      case "home": return <HomeScreen />;
+      case "home": return <HomeScreen onOpenActions={() => setShowActions(true)} />;
       case "discover": return <DiscoverScreen />;
-      case "actions": return <ActionsScreen />;
       case "profile": return <ProfileScreen />;
     }
   };
