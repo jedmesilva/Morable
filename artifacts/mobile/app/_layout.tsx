@@ -10,6 +10,7 @@ import {
   Sora_800ExtraBold,
 } from "@expo-google-fonts/sora";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -19,6 +20,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
+import { useSystemBars } from "@/hooks/useSystemBars";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -38,6 +40,16 @@ function RootLayoutNav() {
       />
     </Stack>
   );
+}
+
+function SystemBarsInit() {
+  const { initNavBar } = useSystemBars();
+
+  useEffect(() => {
+    initNavBar();
+  }, [initNavBar]);
+
+  return null;
 }
 
 export default function RootLayout() {
@@ -60,6 +72,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      {/*
+        Global status bar configuration:
+        - style="light"      → white clock/icons — correct contrast on the dark theme
+        - translucent        → app content draws behind the status bar area (edge-to-edge)
+        - backgroundColor    → transparent so the app background shows through on Android
+      */}
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
+      {/* Initializes the Android navigation bar to transparent + light buttons */}
+      <SystemBarsInit />
+
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider>

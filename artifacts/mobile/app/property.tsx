@@ -1,14 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
   Modal,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
+import { useSystemBars } from "@/hooks/useSystemBars";
 
 const SCREEN_W = Dimensions.get("window").width;
 const SCREEN_H = Dimensions.get("window").height;
@@ -62,6 +62,13 @@ export default function PropertyScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [activeTab, setActiveTab] = useState<"details" | "match" | "reviews">("details");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const { setFullscreen } = useSystemBars();
+
+  // Enter immersive mode (hide status bar + nav bar) when the lightbox opens,
+  // restore both bars when it closes.
+  useEffect(() => {
+    setFullscreen(lightboxIndex !== null);
+  }, [lightboxIndex, setFullscreen]);
 
   if (!activeProperty) {
     router.back();
@@ -405,7 +412,6 @@ export default function PropertyScreen() {
         statusBarTranslucent
         onRequestClose={() => setLightboxIndex(null)}
       >
-        <StatusBar hidden />
         <View style={styles.lightbox}>
           {/* Close + counter */}
           <View style={[styles.lightboxTopBar, { paddingTop: topPad + 8 }]}>
