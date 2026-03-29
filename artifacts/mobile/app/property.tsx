@@ -487,7 +487,7 @@ export default function PropertyScreen() {
       {/* ── LIGHTBOX ── */}
       <Modal
         visible={lightboxIndex !== null}
-        transparent={false}
+        transparent={true}
         animationType="fade"
         statusBarTranslucent
         onRequestClose={() => setLightboxIndex(null)}
