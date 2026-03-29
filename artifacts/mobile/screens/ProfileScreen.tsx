@@ -392,6 +392,39 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* MINHAS PREFERÊNCIAS */}
+          <TouchableOpacity
+            style={styles.blockCard}
+            activeOpacity={0.85}
+            onPress={() => openPanel("preferencias")}
+          >
+            <View style={styles.blockHeader}>
+              <View style={[styles.blockIcon, { backgroundColor: colors.greenDim, borderColor: "rgba(62,207,142,0.2)" }]}>
+                <Ionicons name="heart" size={18} color={colors.green} />
+              </View>
+              <View style={styles.blockTitleWrap}>
+                <Text style={styles.blockTitle}>Minhas preferências</Text>
+                <Text style={styles.blockSub}>Alimenta o match dos imóveis</Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={colors.text3} />
+            </View>
+
+            {/* 2×2 pref grid */}
+            <View style={styles.prefGrid}>
+              {[
+                { icon: <MaterialCommunityIcons name="paw" size={13} color={colors.green} />, label: "Pets OK", bg: colors.greenDim },
+                { icon: <Feather name="wifi" size={13} color={colors.blue} />, label: "Internet", bg: colors.blueDim },
+                { icon: <Feather name="truck" size={13} color={colors.gold} />, label: "Garagem", bg: colors.goldDim },
+                { icon: <MaterialCommunityIcons name="dumbbell" size={13} color="rgba(167,139,250,0.9)" />, label: "Academia", bg: "rgba(167,139,250,0.08)" },
+              ].map((p, i) => (
+                <View key={i} style={styles.prefItem}>
+                  <View style={[styles.prefIcon, { backgroundColor: p.bg }]}>{p.icon}</View>
+                  <Text style={styles.prefLabel}>{p.label}</Text>
+                </View>
+              ))}
+            </View>
+          </TouchableOpacity>
+
           {/* MEU HISTÓRICO */}
           <Text style={[styles.sectionLabel, { marginTop: 4 }]}>Trajetória</Text>
           <TouchableOpacity
@@ -444,39 +477,6 @@ export default function ProfileScreen() {
                   />
                   <Text style={styles.miniTlName}>{t.name}</Text>
                   <Text style={styles.miniTlDur}>{t.dur}</Text>
-                </View>
-              ))}
-            </View>
-          </TouchableOpacity>
-
-          {/* MINHAS PREFERÊNCIAS */}
-          <TouchableOpacity
-            style={styles.blockCard}
-            activeOpacity={0.85}
-            onPress={() => openPanel("preferencias")}
-          >
-            <View style={styles.blockHeader}>
-              <View style={[styles.blockIcon, { backgroundColor: colors.greenDim, borderColor: "rgba(62,207,142,0.2)" }]}>
-                <Ionicons name="heart" size={18} color={colors.green} />
-              </View>
-              <View style={styles.blockTitleWrap}>
-                <Text style={styles.blockTitle}>Minhas preferências</Text>
-                <Text style={styles.blockSub}>Alimenta o match dos imóveis</Text>
-              </View>
-              <Feather name="chevron-right" size={16} color={colors.text3} />
-            </View>
-
-            {/* 2×2 pref grid */}
-            <View style={styles.prefGrid}>
-              {[
-                { icon: <MaterialCommunityIcons name="paw" size={13} color={colors.green} />, label: "Pets OK", bg: colors.greenDim },
-                { icon: <Feather name="wifi" size={13} color={colors.blue} />, label: "Internet", bg: colors.blueDim },
-                { icon: <Feather name="truck" size={13} color={colors.gold} />, label: "Garagem", bg: colors.goldDim },
-                { icon: <MaterialCommunityIcons name="dumbbell" size={13} color="rgba(167,139,250,0.9)" />, label: "Academia", bg: "rgba(167,139,250,0.08)" },
-              ].map((p, i) => (
-                <View key={i} style={styles.prefItem}>
-                  <View style={[styles.prefIcon, { backgroundColor: p.bg }]}>{p.icon}</View>
-                  <Text style={styles.prefLabel}>{p.label}</Text>
                 </View>
               ))}
             </View>
