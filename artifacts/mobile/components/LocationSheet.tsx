@@ -164,8 +164,9 @@ export function LocationSheet({
         </Animated.View>
 
         {/* Sheet */}
-        <Animated.View
-          style={[styles.sheet, { paddingBottom: insets.bottom + 20 }, sheetStyle]}
+        <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
+        <View
+          style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}
         >
           {/* Draggable handle area */}
           <GestureDetector gesture={panGesture}>
@@ -258,6 +259,9 @@ export function LocationSheet({
               <Text style={styles.confirmBtnText}>Confirmar "{query.trim()}"</Text>
             </TouchableOpacity>
           )}
+        </View>
+        {/* Bottom fill — covers the gap between the sheet and the screen edge */}
+        <View style={[styles.bottomFill, { height: insets.bottom + 40 }]} />
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
@@ -273,14 +277,21 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
   },
+  sheetWrapper: {
+    maxHeight: "85%",
+  },
   sheet: {
     backgroundColor: "#14181f",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 20,
-    maxHeight: "85%",
+  },
+  bottomFill: {
+    backgroundColor: "#14181f",
   },
   dragArea: {
     alignItems: "center",
