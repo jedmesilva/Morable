@@ -3,9 +3,12 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Dimensions,
   Image,
+  Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,11 +18,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
 
+const SCREEN_W = Dimensions.get("window").width;
+const SCREEN_H = Dimensions.get("window").height;
+
 const propertyImages: Record<string, ReturnType<typeof require>> = {
   "1": require("@/assets/images/property-1.png"),
   "2": require("@/assets/images/property-2.png"),
   "3": require("@/assets/images/property-3.png"),
 };
+
+const galleryImages = [
+  require("@/assets/images/property-1.png"),
+  require("@/assets/images/property-2.png"),
+  require("@/assets/images/property-3.png"),
+];
 
 const amenities = [
   { icon: "wifi", label: "Wi-Fi", active: true },
@@ -49,6 +61,7 @@ export default function PropertyScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [activeTab, setActiveTab] = useState<"details" | "match" | "reviews">("details");
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (!activeProperty) {
     router.back();
@@ -95,10 +108,29 @@ export default function PropertyScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Hero image inside scroll */}
-        <View style={styles.hero}>
+        {/* Hero image inside scroll — tap to open fullscreen gallery */}
+        <TouchableOpacity
+          style={styles.hero}
+          activeOpacity={0.95}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setLightboxIndex(0);
+          }}
+        >
           <Image source={img} style={styles.heroImage} resizeMode="cover" />
           <View style={styles.heroOverlay} />
+
+          {/* Photo count badge */}
+          <View style={styles.photoCountBadge}>
+            <Feather name="image" size={11} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.photoCountText}>{galleryImages.length} fotos</Text>
+          </View>
+
+          {/* Tap hint */}
+          <View style={styles.tapHint}>
+            <Feather name="maximize-2" size={13} color="rgba(255,255,255,0.9)" />
+            <Text style={styles.tapHintText}>Toque para ver em tela cheia</Text>
+          </View>
           <View style={styles.heroBottom}>
             <View style={styles.heroTagRow}>
               <View
@@ -136,7 +168,7 @@ export default function PropertyScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
         {/* Title */}
         <View style={styles.titleSection}>
           <Text style={styles.propName}>{activeProperty.name}</Text>
@@ -181,6 +213,37 @@ export default function PropertyScreen() {
 
         {activeTab === "details" && (
           <>
+            {/* Gallery strip */}
+            <View style={styles.section}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>FOTOS</Text>
+                <View style={styles.sectionLine} />
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryStrip}>
+                {galleryImages.map((src, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.galleryThumb}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setLightboxIndex(i);
+                    }}
+                  >
+                    <Image source={src} style={styles.galleryThumbImg} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={styles.gallerySeeAll}
+                  onPress={() => setLightboxIndex(0)}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="grid" size={16} color={colors.gold} />
+                  <Text style={styles.gallerySeeAllText}>Ver tudo</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
             {/* Amenities */}
             <View style={styles.section}>
               <View style={styles.sectionTitleRow}>
@@ -333,6 +396,58 @@ export default function PropertyScreen() {
           <Feather name="message-circle" size={20} color={colors.gold} />
         </TouchableOpacity>
       </View>
+
+      {/* Lightbox fullscreen modal */}
+      <Modal
+        visible={lightboxIndex !== null}
+        transparent={false}
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setLightboxIndex(null)}
+      >
+        <StatusBar hidden />
+        <View style={styles.lightbox}>
+          {/* Close + counter */}
+          <View style={[styles.lightboxTopBar, { paddingTop: topPad + 8 }]}>
+            <TouchableOpacity
+              style={styles.lightboxClose}
+              onPress={() => setLightboxIndex(null)}
+            >
+              <Feather name="x" size={20} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.lightboxCounter}>
+              {(lightboxIndex ?? 0) + 1} / {galleryImages.length}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Main image */}
+          <View style={styles.lightboxImgWrap}>
+            <Image
+              source={galleryImages[lightboxIndex ?? 0]}
+              style={styles.lightboxImg}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Thumbnail strip */}
+          <View style={[styles.lightboxStrip, { paddingBottom: insets.bottom + 20 }]}>
+            {galleryImages.map((src, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setLightboxIndex(i)}
+                activeOpacity={0.8}
+                style={[
+                  styles.lbThumb,
+                  lightboxIndex === i && styles.lbThumbActive,
+                ]}
+              >
+                <Image source={src} style={styles.lbThumbImg} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -351,6 +466,104 @@ const styles = StyleSheet.create({
     inset: 0,
     backgroundColor: "rgba(0,0,0,0.35)",
   },
+  photoCountBadge: {
+    position: "absolute",
+    bottom: 64,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  photoCountText: { fontSize: 11, color: "rgba(255,255,255,0.7)" },
+  tapHint: {
+    position: "absolute",
+    bottom: 100,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  tapHintText: { fontSize: 12, fontWeight: "600" as const, color: "rgba(255,255,255,0.9)" },
+  galleryStrip: { flexDirection: "row" as const },
+  galleryThumb: {
+    width: 88,
+    height: 72,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  galleryThumbImg: { width: "100%", height: "100%" },
+  gallerySeeAll: {
+    width: 88,
+    height: 72,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed" as const,
+    borderColor: "rgba(201,169,110,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    marginRight: 8,
+  },
+  gallerySeeAllText: { fontSize: 10, color: colors.gold, fontWeight: "500" as const, letterSpacing: 0.5 },
+  lightbox: { flex: 1, backgroundColor: "#000" },
+  lightboxTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  lightboxClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxCounter: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "rgba(255,255,255,0.7)",
+  },
+  lightboxImgWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxImg: { width: SCREEN_W, height: SCREEN_H * 0.65 },
+  lightboxStrip: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  lbThumb: {
+    width: 56,
+    height: 44,
+    borderRadius: 8,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  lbThumbActive: { borderColor: colors.gold },
+  lbThumbImg: { width: "100%", height: "100%" },
   heroTopBar: {
     position: "absolute",
     left: 0,
