@@ -68,12 +68,12 @@ export function PropertyCard({ property }: { property: Property }) {
             <Text style={styles.matchText}>{property.match}% match</Text>
           </View>
           <TouchableOpacity
-            style={[styles.saveBtn, saved && styles.saveBtnActive]}
+            style={styles.saveBtn}
             onPress={handleSave}
           >
             <Ionicons
               name={saved ? "heart" : "heart-outline"}
-              size={16}
+              size={18}
               color={saved ? colors.red : "#fff"}
             />
           </TouchableOpacity>
@@ -202,10 +202,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
-  },
-  saveBtnActive: {
-    backgroundColor: "rgba(255,102,102,0.25)",
-    borderColor: "rgba(255,102,102,0.4)",
   },
   bottomContent: {
     position: "absolute",
