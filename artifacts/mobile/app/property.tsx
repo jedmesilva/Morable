@@ -56,6 +56,7 @@ export default function PropertyScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxScrollRef = useRef<ScrollView>(null);
   const { setFullscreen } = useSystemBars();
 
   const matchBarAnim = useRef(new Animated.Value(0)).current;
@@ -118,6 +119,20 @@ export default function PropertyScreen() {
     outputRange: ["0%", "100%"],
   });
 
+  // Opens the lightbox at a specific index, scrolling the carousel to position.
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setTimeout(() => {
+      lightboxScrollRef.current?.scrollTo({ x: SCREEN_W * index, animated: false });
+    }, 50);
+  };
+
+  // Called from thumbnails inside the lightbox — updates state + animates carousel.
+  const goToLightboxIndex = (index: number) => {
+    setLightboxIndex(index);
+    lightboxScrollRef.current?.scrollTo({ x: SCREEN_W * index, animated: true });
+  };
+
   return (
     <View style={styles.root}>
       {/* Fixed overlay: back + action buttons */}
@@ -160,7 +175,7 @@ export default function PropertyScreen() {
           activeOpacity={0.95}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setLightboxIndex(0);
+            openLightbox(0);
           }}
         >
           <Image source={img} style={styles.heroImage} resizeMode="cover" />
@@ -251,7 +266,7 @@ export default function PropertyScreen() {
                 activeOpacity={0.8}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setLightboxIndex(i);
+                  openLightbox(i);
                 }}
               >
                 <Image source={src} style={styles.galleryThumbImg} resizeMode="cover" />
@@ -259,7 +274,7 @@ export default function PropertyScreen() {
             ))}
             <TouchableOpacity
               style={styles.gallerySeeAll}
-              onPress={() => setLightboxIndex(0)}
+              onPress={() => openLightbox(0)}
               activeOpacity={0.7}
             >
               <Text style={styles.gallerySeeAllCount}>+3</Text>
@@ -503,19 +518,44 @@ export default function PropertyScreen() {
             <Feather name="x" size={18} color="#fff" />
           </TouchableOpacity>
 
-          <View style={styles.lightboxImgWrap}>
-            <Image
-              source={galleryImages[lightboxIndex ?? 0]}
-              style={styles.lightboxImg}
-              resizeMode="contain"
-            />
+          {/* Swipeable image carousel */}
+          <ScrollView
+            ref={lightboxScrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={styles.lightboxImgWrap}
+            onMomentumScrollEnd={({ nativeEvent }) => {
+              const index = Math.round(nativeEvent.contentOffset.x / SCREEN_W);
+              setLightboxIndex(index);
+            }}
+          >
+            {galleryImages.map((src, i) => (
+              <View key={i} style={styles.lightboxImgPage}>
+                <Image source={src} style={styles.lightboxImg} resizeMode="contain" />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Dot indicators */}
+          <View style={styles.lightboxDots}>
+            {galleryImages.map((_, i) => (
+              <View
+                key={i}
+                style={[styles.lightboxDot, lightboxIndex === i && styles.lightboxDotActive]}
+              />
+            ))}
           </View>
 
+          {/* Thumbnail strip */}
           <View style={[styles.lightboxStrip, { paddingBottom: insets.bottom + 20 }]}>
             {galleryImages.map((src, i) => (
               <TouchableOpacity
                 key={i}
-                onPress={() => setLightboxIndex(i)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  goToLightboxIndex(i);
+                }}
                 activeOpacity={0.8}
                 style={[styles.lbThumb, lightboxIndex === i && styles.lbThumbActive]}
               >
@@ -814,8 +854,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center", justifyContent: "center",
   },
-  lightboxImgWrap: { flex: 1, alignItems: "center", justifyContent: "center", width: "100%" },
+  lightboxImgWrap: { flex: 1, width: SCREEN_W },
+  lightboxImgPage: { width: SCREEN_W, alignItems: "center", justifyContent: "center" },
   lightboxImg: { width: SCREEN_W * 0.9, height: SCREEN_H * 0.6 },
+  lightboxDots: { flexDirection: "row", gap: 6, paddingVertical: 12, alignItems: "center" },
+  lightboxDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  lightboxDotActive: { width: 18, backgroundColor: "#fff" },
   lightboxStrip: {
     flexDirection: "row", justifyContent: "center", gap: 8,
     paddingHorizontal: 20, paddingTop: 16,
