@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
 
   // HERO
   hero: {
-    backgroundColor: "#0f1520",
+    backgroundColor: colors.bg,
     paddingHorizontal: 24,
     paddingBottom: 28,
     overflow: "hidden",
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   panelHeader: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: "#0f1520",
+    backgroundColor: colors.bg,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
