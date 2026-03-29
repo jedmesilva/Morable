@@ -136,8 +136,8 @@ export function LocationSheet({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Backdrop */}
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
@@ -248,15 +248,15 @@ export function LocationSheet({
 }
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
   },
   sheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: "#14181f",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
