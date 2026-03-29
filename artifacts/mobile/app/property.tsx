@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -151,7 +151,7 @@ export default function PropertyScreen() {
               toggleSave(activeProperty.id);
             }}
           >
-            <Feather name="heart" size={16} color={saved ? colors.red : "#fff"} />
+            <Ionicons name={saved ? "heart" : "heart-outline"} size={16} color={saved ? colors.red : "#fff"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -487,7 +487,7 @@ export default function PropertyScreen() {
             toggleSave(activeProperty.id);
           }}
         >
-          <Feather name="heart" size={20} color={saved ? colors.red : colors.text2} />
+          <Ionicons name={saved ? "heart" : "heart-outline"} size={20} color={saved ? colors.red : colors.text2} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.subscribeBtn}

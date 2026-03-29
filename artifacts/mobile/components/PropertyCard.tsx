@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React from "react";
@@ -63,8 +63,8 @@ export function PropertyCard({ property }: { property: Property }) {
             style={[styles.saveBtn, saved && styles.saveBtnActive]}
             onPress={handleSave}
           >
-            <Feather
-              name="heart"
+            <Ionicons
+              name={saved ? "heart" : "heart-outline"}
               size={16}
               color={saved ? colors.red : "#fff"}
             />
