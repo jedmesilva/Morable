@@ -300,21 +300,11 @@ export default function ProfileScreen() {
 
           <View style={styles.heroTop}>
             {/* Avatar */}
-            <TouchableOpacity activeOpacity={0.8}>
-              <View style={styles.avatarRing}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>M</Text>
-                </View>
-                <View style={styles.avatarCam}>
-                  <Feather name="camera" size={11} color="#fff" />
-                </View>
+            <View style={styles.avatarRing}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>M</Text>
               </View>
-            </TouchableOpacity>
-
-            {/* Edit button */}
-            <TouchableOpacity style={styles.editBtn} activeOpacity={0.7}>
-              <Feather name="edit-2" size={15} color={colors.text2} />
-            </TouchableOpacity>
+            </View>
           </View>
 
           {/* Identity */}
@@ -326,6 +316,16 @@ export default function ProfileScreen() {
               <Text style={styles.userMetaText}>Membro desde 2021</Text>
             </View>
           </View>
+
+          {/* Edit profile button */}
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            activeOpacity={0.8}
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          >
+            <Feather name="edit-2" size={14} color={colors.text2} />
+            <Text style={styles.editProfileBtnText}>Editar perfil</Text>
+          </TouchableOpacity>
 
           {/* Plan badge */}
           <View style={styles.planBadge}>
@@ -554,30 +554,25 @@ const styles = StyleSheet.create({
     fontFamily: "Sora_700Bold",
     color: "#fff",
   },
-  avatarCam: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.gold,
-    borderWidth: 2,
-    borderColor: colors.bg,
+  editProfileBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
-  editBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    gap: 7,
+    alignSelf: "flex-start",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.13)",
-    alignItems: "center",
-    justifyContent: "center",
+    marginBottom: 18,
   },
-  identity: { marginBottom: 16 },
+  editProfileBtnText: {
+    fontSize: 13,
+    fontFamily: "Sora_600SemiBold",
+    color: colors.text2,
+  },
+  identity: { marginBottom: 12 },
   userName: {
     fontSize: 24,
     fontFamily: "Sora_700Bold",
