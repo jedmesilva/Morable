@@ -40,7 +40,7 @@ export default function DiscoverScreen() {
   });
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -141,7 +141,7 @@ export default function DiscoverScreen() {
         onClose={() => setLocationSheetVisible(false)}
         onConfirm={(loc) => setLocation(loc)}
       />
-    </>
+    </View>
   );
 }
 

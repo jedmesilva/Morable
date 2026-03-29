@@ -3,9 +3,6 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
-  KeyboardEvent,
-  Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -67,7 +65,9 @@ export function LocationSheet({
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState("");
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  // Keyboard height animated value — from react-native-keyboard-controller
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
 
   const translateY = useSharedValue(600);
   const backdropOpacity = useSharedValue(0);
@@ -79,19 +79,6 @@ export function LocationSheet({
         ).slice(0, 6)
       : [];
 
-  // Track keyboard height to lift the sheet
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const onShow = (e: KeyboardEvent) => setKeyboardOffset(e.endCoordinates.height);
-    const onHide = () => setKeyboardOffset(0);
-
-    const showSub = Keyboard.addListener(showEvent, onShow);
-    const hideSub = Keyboard.addListener(hideEvent, onHide);
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
-
   const dismiss = () => {
     Keyboard.dismiss();
     translateY.value = withTiming(600, { duration: 260 });
@@ -102,7 +89,6 @@ export function LocationSheet({
   useEffect(() => {
     if (visible) {
       setQuery("");
-      setKeyboardOffset(0);
       translateY.value = withSpring(0, { damping: 32, stiffness: 260, mass: 1 });
       backdropOpacity.value = withTiming(1, { duration: 280 });
       setTimeout(() => inputRef.current?.focus(), 360);
@@ -128,12 +114,16 @@ export function LocationSheet({
       }
     });
 
+  // Sheet lifts with the keyboard automatically
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [
+      { translateY: translateY.value + keyboardHeight.value },
+    ],
   }));
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
+    pointerEvents: backdropOpacity.value > 0 ? "auto" : "none",
   }));
 
   const handleSelectSuggestion = (suggestion: string) => {
@@ -158,28 +148,22 @@ export function LocationSheet({
     dismiss();
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={dismiss}
-    >
+    <>
       {/* Backdrop */}
       <Animated.View style={[styles.backdrop, backdropStyle]}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={dismiss} activeOpacity={1} />
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          onPress={dismiss}
+          activeOpacity={1}
+        />
       </Animated.View>
 
-      {/* Sheet — absolutely pinned to bottom, lifts with keyboard */}
-      <Animated.View
-        style={[
-          styles.sheet,
-          { bottom: keyboardOffset },
-          sheetStyle,
-        ]}
-      >
-        {/* Draggable handle */}
+      {/* Sheet — inline absolute, no Modal */}
+      <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }, sheetStyle]}>
+        {/* Drag handle */}
         <GestureDetector gesture={panGesture}>
           <View style={styles.dragArea}>
             <View style={styles.handle} />
@@ -270,11 +254,8 @@ export function LocationSheet({
             <Text style={styles.confirmBtnText}>Confirmar "{query.trim()}"</Text>
           </TouchableOpacity>
         )}
-
-        {/* Safe area spacer */}
-        <View style={{ height: keyboardOffset > 0 ? 8 : insets.bottom + 8 }} />
       </Animated.View>
-    </Modal>
+    </>
   );
 }
 
@@ -282,11 +263,14 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
+    zIndex: 10,
   },
   sheet: {
     position: "absolute",
+    bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 11,
     backgroundColor: "#14181f",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
