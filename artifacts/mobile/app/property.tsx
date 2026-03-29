@@ -68,78 +68,75 @@ export default function PropertyScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Hero */}
-      <View style={styles.hero}>
-        <Image source={img} style={styles.heroImage} resizeMode="cover" />
-        <View style={styles.heroOverlay} />
-
-        {/* Top bar */}
-        <View style={[styles.heroTopBar, { top: topPad }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={18} color="#fff" />
+      {/* Fixed overlay: back + action buttons */}
+      <View style={[styles.heroTopBar, { top: topPad }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Feather name="arrow-left" size={18} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.heroActions}>
+          <TouchableOpacity
+            style={[styles.heroActionBtn, saved && styles.heroActionBtnSaved]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              toggleSave(activeProperty.id);
+            }}
+          >
+            <Feather name="heart" size={18} color={saved ? colors.red : "#fff"} />
           </TouchableOpacity>
-          <View style={styles.heroActions}>
-            <TouchableOpacity
-              style={[styles.heroActionBtn, saved && styles.heroActionBtnSaved]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                toggleSave(activeProperty.id);
-              }}
-            >
-              <Feather name="heart" size={18} color={saved ? colors.red : "#fff"} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.heroActionBtn}>
-              <Feather name="share-2" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Bottom content */}
-        <View style={styles.heroBottom}>
-          <View style={styles.heroTagRow}>
-            <View
-              style={[
-                styles.heroTag,
-                activeProperty.available
-                  ? styles.heroTagAvailable
-                  : styles.heroTagUnavailable,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.heroTagText,
-                  activeProperty.available
-                    ? { color: colors.green }
-                    : { color: colors.red },
-                ]}
-              >
-                {activeProperty.available ? "DISPONÍVEL" : "INDISPONÍVEL"}
-              </Text>
-            </View>
-            <View style={styles.heroTag}>
-              <Text style={styles.heroTagText}>{activeProperty.type.toUpperCase()}</Text>
-            </View>
-          </View>
-          <View style={styles.heroPriceRow}>
-            <Text style={styles.heroPrice}>
-              {activeProperty.price}
-              <Text style={styles.heroPricePer}>/mês</Text>
-            </Text>
-            <View style={styles.heroRating}>
-              <Feather name="star" size={12} color={colors.gold} />
-              <Text style={styles.heroRatingVal}>{activeProperty.rating}</Text>
-              <Text style={styles.heroRatingCount}>({activeProperty.reviews})</Text>
-            </View>
-          </View>
+          <TouchableOpacity style={styles.heroActionBtn}>
+            <Feather name="share-2" size={18} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Content */}
+      {/* Single ScrollView: hero image + all content scroll together */}
       <ScrollView
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
+        {/* Hero image inside scroll */}
+        <View style={styles.hero}>
+          <Image source={img} style={styles.heroImage} resizeMode="cover" />
+          <View style={styles.heroOverlay} />
+          <View style={styles.heroBottom}>
+            <View style={styles.heroTagRow}>
+              <View
+                style={[
+                  styles.heroTag,
+                  activeProperty.available
+                    ? styles.heroTagAvailable
+                    : styles.heroTagUnavailable,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.heroTagText,
+                    activeProperty.available
+                      ? { color: colors.green }
+                      : { color: colors.red },
+                  ]}
+                >
+                  {activeProperty.available ? "DISPONÍVEL" : "INDISPONÍVEL"}
+                </Text>
+              </View>
+              <View style={styles.heroTag}>
+                <Text style={styles.heroTagText}>{activeProperty.type.toUpperCase()}</Text>
+              </View>
+            </View>
+            <View style={styles.heroPriceRow}>
+              <Text style={styles.heroPrice}>
+                {activeProperty.price}
+                <Text style={styles.heroPricePer}>/mês</Text>
+              </Text>
+              <View style={styles.heroRating}>
+                <Feather name="star" size={12} color={colors.gold} />
+                <Text style={styles.heroRatingVal}>{activeProperty.rating}</Text>
+                <Text style={styles.heroRatingCount}>({activeProperty.reviews})</Text>
+              </View>
+            </View>
+          </View>
+        </View>
         {/* Title */}
         <View style={styles.titleSection}>
           <Text style={styles.propName}>{activeProperty.name}</Text>
