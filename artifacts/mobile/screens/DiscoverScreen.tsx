@@ -12,18 +12,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 import { PropertyCard } from "@/components/PropertyCard";
-import { LocationSheet } from "@/components/LocationSheet";
 import { properties } from "@/context/AppContext";
 
 const chips = ["Todos", "Studio", "1 quarto", "2 quartos", "3+ quartos"];
 
-export default function DiscoverScreen() {
+interface DiscoverScreenProps {
+  location: string;
+  onOpenLocationSheet: () => void;
+}
+
+export default function DiscoverScreen({ location, onOpenLocationSheet }: DiscoverScreenProps) {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [activeChip, setActiveChip] = useState(0);
   const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("Rio de Janeiro, RJ");
-  const [locationSheetVisible, setLocationSheetVisible] = useState(false);
 
   const filtered = properties.filter((p) => {
     const matchChip =
@@ -53,7 +55,7 @@ export default function DiscoverScreen() {
           {/* Location Bar */}
           <TouchableOpacity
             style={styles.locationBar}
-            onPress={() => setLocationSheetVisible(true)}
+            onPress={onOpenLocationSheet}
             activeOpacity={0.8}
           >
             <View style={styles.locationLeft}>
@@ -134,13 +136,6 @@ export default function DiscoverScreen() {
           </View>
         </View>
       </ScrollView>
-
-      <LocationSheet
-        visible={locationSheetVisible}
-        currentLocation={location}
-        onClose={() => setLocationSheetVisible(false)}
-        onConfirm={(loc) => setLocation(loc)}
-      />
     </View>
   );
 }

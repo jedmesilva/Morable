@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { BottomTabBar, type TabName } from "@/components/BottomTabBar";
+import { LocationSheet } from "@/components/LocationSheet";
 import colors from "@/constants/colors";
 import HomeScreen from "@/screens/HomeScreen";
 import DiscoverScreen from "@/screens/DiscoverScreen";
@@ -10,6 +11,8 @@ import ProfileScreen from "@/screens/ProfileScreen";
 export default function MainScreen() {
   const [activeTab, setActiveTab] = useState<TabName>("home");
   const [showActions, setShowActions] = useState(false);
+  const [location, setLocation] = useState("Rio de Janeiro, RJ");
+  const [locationSheetVisible, setLocationSheetVisible] = useState(false);
 
   if (showActions) {
     return (
@@ -22,7 +25,12 @@ export default function MainScreen() {
   const renderScreen = () => {
     switch (activeTab) {
       case "home": return <HomeScreen onOpenActions={() => setShowActions(true)} />;
-      case "discover": return <DiscoverScreen />;
+      case "discover": return (
+        <DiscoverScreen
+          location={location}
+          onOpenLocationSheet={() => setLocationSheetVisible(true)}
+        />
+      );
       case "profile": return <ProfileScreen />;
     }
   };
@@ -31,6 +39,12 @@ export default function MainScreen() {
     <View style={styles.root}>
       <View style={styles.content}>{renderScreen()}</View>
       <BottomTabBar activeTab={activeTab} onTabPress={setActiveTab} />
+      <LocationSheet
+        visible={locationSheetVisible}
+        currentLocation={location}
+        onClose={() => setLocationSheetVisible(false)}
+        onConfirm={(loc) => setLocation(loc)}
+      />
     </View>
   );
 }
