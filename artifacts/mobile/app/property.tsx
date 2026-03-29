@@ -145,13 +145,13 @@ export default function PropertyScreen() {
             <Feather name="share-2" size={16} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.heroActionBtn, saved && styles.heroActionBtnSaved]}
+            style={styles.heroActionBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               toggleSave(activeProperty.id);
             }}
           >
-            <Ionicons name={saved ? "heart" : "heart-outline"} size={16} color={saved ? colors.red : "#fff"} />
+            <Ionicons name={saved ? "heart" : "heart-outline"} size={18} color={saved ? colors.red : "#fff"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -481,7 +481,7 @@ export default function PropertyScreen() {
         style={[styles.ctaBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}
       >
         <TouchableOpacity
-          style={[styles.saveBtn, saved && styles.saveBtnSaved]}
+          style={styles.saveBtn}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             toggleSave(activeProperty.id);
@@ -600,10 +600,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
     borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
     alignItems: "center", justifyContent: "center",
-  },
-  heroActionBtnSaved: {
-    backgroundColor: "rgba(255,102,102,0.25)",
-    borderColor: "rgba(255,102,102,0.4)",
   },
   heroBottom: {
     position: "absolute", bottom: 0, left: 0, right: 0, padding: 20,
@@ -820,10 +816,6 @@ const styles = StyleSheet.create({
     width: 52, height: 52, borderRadius: 16,
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border2,
     alignItems: "center", justifyContent: "center",
-  },
-  saveBtnSaved: {
-    backgroundColor: "rgba(246,102,102,0.15)",
-    borderColor: "rgba(246,102,102,0.35)",
   },
   subscribeBtn: {
     flex: 1, height: 52, borderRadius: 16,
