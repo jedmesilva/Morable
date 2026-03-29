@@ -68,21 +68,21 @@ export default function HomeScreen({ onOpenActions }: HomeScreenProps) {
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 16 }]}>
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.welcomeLabel}>BEM-VINDO DE VOLTA</Text>
-            <Text style={styles.welcomeName}>
-              Olá, Rafael <Text style={{ fontSize: 22 }}>👋</Text>
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconBtn}>
-              <View style={styles.notifDot} />
-              <Feather name="bell" size={18} color={colors.gold} />
-            </TouchableOpacity>
+          <View style={styles.headerLeft}>
             <View style={styles.avatarBtn}>
               <Text style={styles.avatarText}>R</Text>
             </View>
+            <View>
+              <Text style={styles.welcomeLabel}>BEM-VINDO DE VOLTA</Text>
+              <Text style={styles.welcomeName}>
+                Olá, Rafael <Text style={{ fontSize: 22 }}>👋</Text>
+              </Text>
+            </View>
           </View>
+          <TouchableOpacity style={styles.iconBtn}>
+            <View style={styles.notifDot} />
+            <Feather name="bell" size={18} color={colors.gold} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     color: colors.text,
   },
-  headerActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBtn: {
     width: 44,
     height: 44,
