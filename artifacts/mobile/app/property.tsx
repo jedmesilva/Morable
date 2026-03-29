@@ -845,11 +845,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   lightboxCounter: {
-    position: "absolute", left: 20,
+    position: "absolute", left: 20, zIndex: 10,
     fontFamily: "Sora_600SemiBold", fontSize: 13, color: "rgba(255,255,255,0.6)",
   },
   lightboxClose: {
-    position: "absolute", right: 20,
+    position: "absolute", right: 20, zIndex: 10,
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center", justifyContent: "center",
