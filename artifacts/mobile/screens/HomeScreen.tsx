@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statLabel: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "600" as const,
     color: colors.text3,
     letterSpacing: 1,

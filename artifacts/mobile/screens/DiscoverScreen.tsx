@@ -43,6 +43,9 @@ export default function DiscoverScreen() {
       contentContainerStyle={{ paddingBottom: 32 }}
     >
       <View style={{ paddingTop: topPad + 12, paddingHorizontal: 20 }}>
+        <Text style={styles.title}>Descobrir</Text>
+        <Text style={styles.subtitle}>Encontre seu próximo lar</Text>
+
         {/* Location Bar */}
         <View style={styles.locationBar}>
           <View style={styles.locationLeft}>
@@ -60,9 +63,6 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
-        <Text style={styles.title}>Descobrir</Text>
-        <Text style={styles.subtitle}>Encontre seu próximo lar</Text>
-
         {/* Search */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
@@ -74,6 +74,11 @@ export default function DiscoverScreen() {
               placeholderTextColor={colors.text3}
               style={styles.searchInput}
             />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={15} color={colors.text3} />
+              </TouchableOpacity>
+            )}
           </View>
           <TouchableOpacity style={styles.filterBtn}>
             <Feather name="sliders" size={18} color={colors.gold} />
@@ -107,6 +112,13 @@ export default function DiscoverScreen() {
               <Feather name="home" size={36} color={colors.text3} />
               <Text style={styles.emptyTitle}>Nenhum imóvel encontrado</Text>
               <Text style={styles.emptyText}>Tente ajustar os filtros de busca</Text>
+              <TouchableOpacity
+                style={styles.clearFiltersBtn}
+                onPress={() => { setSearch(""); setActiveChip(0); }}
+              >
+                <Feather name="x-circle" size={14} color={colors.gold} />
+                <Text style={styles.clearFiltersText}>Limpar filtros</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             filtered.map((p) => <PropertyCard key={p.id} property={p} />)
@@ -223,4 +235,21 @@ const styles = StyleSheet.create({
     color: colors.text2,
   },
   emptyText: { fontSize: 13, color: colors.text3, textAlign: "center" },
+  clearFiltersBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(201,169,110,0.25)",
+    backgroundColor: "rgba(201,169,110,0.08)",
+  },
+  clearFiltersText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: colors.gold,
+  },
 });

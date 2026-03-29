@@ -348,6 +348,20 @@ export default function ProfileScreen() {
                 Complete seu perfil para matches mais precisos
               </Text>
             </View>
+            <View style={styles.completionMissingWrap}>
+              <Text style={styles.completionMissingTitle}>O que falta:</Text>
+              {[
+                { icon: "camera", label: "Foto de perfil" },
+                { icon: "phone", label: "Telefone de contato" },
+                { icon: "briefcase", label: "Comprovante de renda" },
+              ].map((item, i) => (
+                <View key={i} style={styles.completionMissingItem}>
+                  <View style={styles.completionMissingDot} />
+                  <Feather name={item.icon as any} size={12} color={colors.text3} />
+                  <Text style={styles.completionMissingText}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -630,6 +644,35 @@ const styles = StyleSheet.create({
   },
   completionHintRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   completionHint: { fontSize: 11, color: colors.text3 },
+  completionMissingWrap: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+    gap: 8,
+  },
+  completionMissingTitle: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: colors.text3,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  completionMissingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  completionMissingDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.gold,
+  },
+  completionMissingText: {
+    fontSize: 12,
+    color: colors.text2,
+  },
 
   // SECTIONS
   sections: { padding: 20, gap: 12 },
