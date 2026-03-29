@@ -2,7 +2,6 @@ import { Feather, MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -12,9 +11,16 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "@/constants/colors";
 
@@ -44,6 +50,8 @@ const SUGGESTIONS = [
   "Água Verde, Curitiba, PR",
 ];
 
+const DISMISS_THRESHOLD = 80;
+
 interface LocationSheetProps {
   visible: boolean;
   currentLocation: string;
@@ -57,11 +65,12 @@ export function LocationSheet({
   onConfirm,
 }: LocationSheetProps) {
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(600)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
-
   const [query, setQuery] = useState("");
+
+  const translateY = useSharedValue(600);
+  const backdropOpacity = useSharedValue(0);
+  const dragOffset = useSharedValue(0);
 
   const filtered =
     query.trim().length >= 2
@@ -70,53 +79,63 @@ export function LocationSheet({
         ).slice(0, 6)
       : [];
 
+  const dismiss = () => {
+    Keyboard.dismiss();
+    translateY.value = withTiming(600, { duration: 240 });
+    backdropOpacity.value = withTiming(0, { duration: 200 });
+    setTimeout(onClose, 240);
+  };
+
   useEffect(() => {
     if (visible) {
       setQuery("");
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          damping: 20,
-          stiffness: 180,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setTimeout(() => inputRef.current?.focus(), 100);
-      });
+      translateY.value = withSpring(0, { damping: 20, stiffness: 180 });
+      backdropOpacity.value = withTiming(1, { duration: 220 });
+      setTimeout(() => inputRef.current?.focus(), 320);
     } else {
-      Keyboard.dismiss();
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 600,
-          duration: 240,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      translateY.value = withTiming(600, { duration: 240 });
+      backdropOpacity.value = withTiming(0, { duration: 200 });
     }
   }, [visible]);
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationY > 0) {
+        dragOffset.value = e.translationY;
+        translateY.value = e.translationY;
+        backdropOpacity.value = Math.max(0, 1 - e.translationY / 300);
+      }
+    })
+    .onEnd((e) => {
+      if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
+        runOnJS(dismiss)();
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+        backdropOpacity.value = withTiming(1, { duration: 180 });
+        dragOffset.value = 0;
+      }
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
 
   const handleSelectSuggestion = (suggestion: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Keyboard.dismiss();
     onConfirm(suggestion);
-    onClose();
+    dismiss();
   };
 
   const handleCurrentLocation = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Keyboard.dismiss();
     onConfirm("Localização atual");
-    onClose();
+    dismiss();
   };
 
   const handleConfirmManual = () => {
@@ -124,7 +143,7 @@ export function LocationSheet({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Keyboard.dismiss();
     onConfirm(query.trim());
-    onClose();
+    dismiss();
   };
 
   return (
@@ -133,29 +152,27 @@ export function LocationSheet({
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={dismiss}
     >
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Backdrop */}
-        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-          <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); }}>
-            <View style={StyleSheet.absoluteFill} />
-          </TouchableWithoutFeedback>
+        <Animated.View style={[styles.backdrop, backdropStyle]}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={dismiss} activeOpacity={1} />
         </Animated.View>
 
         {/* Sheet */}
         <Animated.View
-          style={[
-            styles.sheet,
-            { paddingBottom: insets.bottom + 20 },
-            { transform: [{ translateY: slideAnim }] },
-          ]}
+          style={[styles.sheet, { paddingBottom: insets.bottom + 20 }, sheetStyle]}
         >
-          {/* Handle */}
-          <View style={styles.handle} />
+          {/* Draggable handle area */}
+          <GestureDetector gesture={panGesture}>
+            <View style={styles.dragArea}>
+              <View style={styles.handle} />
+            </View>
+          </GestureDetector>
 
           {/* Header */}
           <View style={styles.header}>
@@ -165,12 +182,12 @@ export function LocationSheet({
                 Distâncias serão calculadas a partir daqui
               </Text>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+            <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>
               <Feather name="x" size={16} color={colors.text2} />
             </TouchableOpacity>
           </View>
 
-          {/* Single input field with "Minha localização" inside */}
+          {/* Input with "Minha localização" button inside */}
           <View style={styles.inputWrap}>
             <Feather name="search" size={16} color={colors.text3} />
             <TextInput
@@ -230,7 +247,7 @@ export function LocationSheet({
             </ScrollView>
           )}
 
-          {/* Confirm button when query doesn't match any suggestion */}
+          {/* Confirm when no suggestion matches */}
           {query.trim().length > 0 && filtered.length === 0 && (
             <TouchableOpacity
               style={styles.confirmBtn}
@@ -263,22 +280,25 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 20,
-    paddingTop: 12,
     maxHeight: "85%",
+  },
+  dragArea: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   handle: {
     width: 36,
     height: 4,
     borderRadius: 2,
     backgroundColor: "rgba(255,255,255,0.15)",
-    alignSelf: "center",
-    marginBottom: 20,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
+    marginTop: 8,
   },
   headerTitle: {
     fontSize: 17,
