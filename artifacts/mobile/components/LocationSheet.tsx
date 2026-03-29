@@ -89,12 +89,12 @@ export function LocationSheet({
   useEffect(() => {
     if (visible) {
       setQuery("");
-      translateY.value = withSpring(0, { damping: 20, stiffness: 180 });
-      backdropOpacity.value = withTiming(1, { duration: 220 });
-      setTimeout(() => inputRef.current?.focus(), 320);
+      translateY.value = withSpring(0, { damping: 32, stiffness: 260, mass: 1 });
+      backdropOpacity.value = withTiming(1, { duration: 280 });
+      setTimeout(() => inputRef.current?.focus(), 360);
     } else {
-      translateY.value = withTiming(600, { duration: 240 });
-      backdropOpacity.value = withTiming(0, { duration: 200 });
+      translateY.value = withTiming(600, { duration: 260 });
+      backdropOpacity.value = withTiming(0, { duration: 220 });
     }
   }, [visible]);
 
@@ -110,8 +110,8 @@ export function LocationSheet({
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
         runOnJS(dismiss)();
       } else {
-        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
-        backdropOpacity.value = withTiming(1, { duration: 180 });
+        translateY.value = withSpring(0, { damping: 32, stiffness: 260, mass: 1 });
+        backdropOpacity.value = withTiming(1, { duration: 200 });
         dragOffset.value = 0;
       }
     });
