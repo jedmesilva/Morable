@@ -18,7 +18,7 @@ import colors from "@/constants/colors";
 
 const SCREEN_W = Dimensions.get("window").width;
 
-type PanelKey = "vida" | "historico" | "preferencias" | null;
+type PanelKey = "historico" | "preferencias" | null;
 
 // ── CIRCULAR PROGRESS AVATAR ──────────────────────────────────────────────────
 function AvatarWithRing({ progress }: { progress: number }) {
@@ -88,11 +88,9 @@ function DetailPanel({
   }, [panelKey]);
 
   const title =
-    panelKey === "vida"
-      ? "Minha vida"
-      : panelKey === "historico"
-        ? "Meu histórico"
-        : "Minhas preferências";
+    panelKey === "historico"
+      ? "Meu histórico"
+      : "Minhas preferências";
 
   return (
     <Modal visible={!!panelKey} transparent animationType="none" statusBarTranslucent>
@@ -117,7 +115,6 @@ function DetailPanel({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.panelContent, { paddingBottom: insets.bottom + 32 }]}
         >
-          {panelKey === "vida" && <VidaContent />}
           {panelKey === "historico" && <HistoricoContent />}
           {panelKey === "preferencias" && <PreferenciasContent />}
         </ScrollView>
@@ -142,52 +139,6 @@ function DetailRow({ label, val }: { label: string; val: string }) {
       <Text style={styles.detailRowLabel}>{label}</Text>
       <Text style={styles.detailRowVal}>{val}</Text>
     </View>
-  );
-}
-
-function VidaContent() {
-  return (
-    <>
-      <DetailCard title="Pessoal">
-        <DetailRow label="Estado civil" val="Casado" />
-        <DetailRow label="Profissão" val="Designer de produto" />
-        <DetailRow label="Trabalha de casa" val="3× por semana" />
-        <DetailRow label="Rotina noturna" val="Dorme cedo" />
-      </DetailCard>
-      <DetailCard title="Cônjuge">
-        <DetailRow label="Nome" val="Carlos Oliveira" />
-        <DetailRow label="Nascimento" val="12 Mar 1988 · 37 anos" />
-        <DetailRow label="Profissão" val="Engenheiro civil" />
-      </DetailCard>
-      <DetailCard title="Filhos · 1">
-        <View style={styles.petCard}>
-          <View style={styles.petAvatar}>
-            <Text style={styles.petEmoji}>👦</Text>
-          </View>
-          <View>
-            <Text style={styles.petName}>Pedro Oliveira</Text>
-            <Text style={styles.petDetail}>4 anos · nascido em 08 Jun 2021</Text>
-          </View>
-        </View>
-      </DetailCard>
-      <DetailCard title="Pets · 3 no total">
-        {[
-          { emoji: "🐕", name: "Bolinha", detail: "Golden Retriever · 3 anos" },
-          { emoji: "🐕", name: "Fred", detail: "Labrador · 5 anos" },
-          { emoji: "🐈", name: "Mia", detail: "Siamesa · 2 anos" },
-        ].map((p, i) => (
-          <View key={i} style={[styles.petCard, i > 0 && { marginTop: 10 }]}>
-            <View style={styles.petAvatar}>
-              <Text style={styles.petEmoji}>{p.emoji}</Text>
-            </View>
-            <View>
-              <Text style={styles.petName}>{p.name}</Text>
-              <Text style={styles.petDetail}>{p.detail}</Text>
-            </View>
-          </View>
-        ))}
-      </DetailCard>
-    </>
   );
 }
 
@@ -357,23 +308,62 @@ export default function ProfileScreen() {
 
           {/* SOBRE MIM */}
           <Text style={styles.sectionLabel}>Sobre mim</Text>
-          <TouchableOpacity style={styles.blockCard} activeOpacity={0.85} onPress={() => openPanel("vida")}>
-            <View style={styles.blockHeader}>
-              <View style={[styles.blockIcon, { backgroundColor: colors.goldDim, borderColor: colors.goldBorder }]}>
-                <Feather name="users" size={18} color={colors.gold} />
+
+          {/* 2-column grid of individual info cards */}
+          <View style={styles.infoGrid}>
+
+            {/* Profissão */}
+            <View style={styles.infoCard}>
+              <View style={[styles.infoCardIcon, { backgroundColor: colors.blueDim, borderColor: "rgba(77,124,254,0.2)" }]}>
+                <Feather name="briefcase" size={16} color={colors.blue} />
               </View>
-              <View style={styles.blockTitleWrap}>
-                <Text style={styles.blockTitle}>Minha vida</Text>
-                <Text style={styles.blockSub}>Casado · 1 filho · Trabalha de casa</Text>
+              <Text style={styles.infoCardLabel}>Profissão</Text>
+              <Text style={styles.infoCardVal}>Designer de produto</Text>
+              <View style={styles.infoCardChip}>
+                <Feather name="monitor" size={10} color={colors.text3} />
+                <Text style={styles.infoCardChipText}>Home office 3×/sem</Text>
               </View>
-              <Feather name="chevron-right" size={16} color={colors.text3} />
             </View>
-            <View style={styles.pillsRow}>
-              <View style={styles.pill}><Text style={styles.pillText}>🐕 2 cães</Text></View>
-              <View style={styles.pill}><Text style={styles.pillText}>🐈 1 gato</Text></View>
-              <View style={[styles.pill, styles.pillGold]}><Text style={styles.pillGoldText}>👶 1 filho</Text></View>
+
+            {/* Estado civil */}
+            <View style={styles.infoCard}>
+              <View style={[styles.infoCardIcon, { backgroundColor: colors.goldDim, borderColor: colors.goldBorder }]}>
+                <Feather name="heart" size={16} color={colors.gold} />
+              </View>
+              <Text style={styles.infoCardLabel}>Estado civil</Text>
+              <Text style={styles.infoCardVal}>Casado</Text>
+              <View style={styles.infoCardChip}>
+                <Feather name="user" size={10} color={colors.text3} />
+                <Text style={styles.infoCardChipText}>Carlos · Eng. Civil</Text>
+              </View>
             </View>
-          </TouchableOpacity>
+
+            {/* Filhos */}
+            <View style={styles.infoCard}>
+              <View style={[styles.infoCardIcon, { backgroundColor: "rgba(167,139,250,0.1)", borderColor: "rgba(167,139,250,0.2)" }]}>
+                <Text style={{ fontSize: 16 }}>👦</Text>
+              </View>
+              <Text style={styles.infoCardLabel}>Filhos</Text>
+              <Text style={styles.infoCardVal}>1 filho</Text>
+              <View style={styles.infoCardChip}>
+                <Feather name="calendar" size={10} color={colors.text3} />
+                <Text style={styles.infoCardChipText}>Pedro · 4 anos</Text>
+              </View>
+            </View>
+
+            {/* Pets */}
+            <View style={styles.infoCard}>
+              <View style={[styles.infoCardIcon, { backgroundColor: colors.greenDim, borderColor: "rgba(62,207,142,0.2)" }]}>
+                <MaterialCommunityIcons name="paw" size={16} color={colors.green} />
+              </View>
+              <Text style={styles.infoCardLabel}>Pets</Text>
+              <Text style={styles.infoCardVal}>3 pets</Text>
+              <View style={styles.infoCardChip}>
+                <Text style={styles.infoCardChipText}>🐕 🐕 🐈</Text>
+              </View>
+            </View>
+
+          </View>
 
           <TouchableOpacity style={styles.blockCard} activeOpacity={0.85} onPress={() => openPanel("preferencias")}>
             <View style={styles.blockHeader}>
@@ -653,6 +643,53 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: "uppercase" as const,
     textAlign: "center" as const,
+  },
+
+  // INFO GRID (individual cards)
+  infoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  infoCard: {
+    width: "47.5%",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 14,
+    gap: 4,
+  },
+  infoCardIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  infoCardLabel: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+    color: colors.text3,
+    letterSpacing: 0.8,
+    textTransform: "uppercase" as const,
+  },
+  infoCardVal: {
+    fontSize: 15,
+    fontFamily: "Sora_600SemiBold",
+    color: colors.text,
+  },
+  infoCardChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  infoCardChipText: {
+    fontSize: 11,
+    color: colors.text3,
   },
 
   // SECTIONS
