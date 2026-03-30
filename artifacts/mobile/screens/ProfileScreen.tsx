@@ -286,7 +286,7 @@ export default function ProfileScreen() {
           <View style={styles.metricsStrip}>
             {[
               { val: "3", label: "Imóveis", color: colors.text },
-              { val: "19m", label: "Média por plano", color: colors.green },
+              { val: "19m", label: "Permanência média", color: colors.green },
               { val: "4,7 ★", label: "Avaliação", color: colors.gold },
             ].map((m, i, arr) => (
               <View
